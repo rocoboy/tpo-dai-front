@@ -1,5 +1,5 @@
+import { createClient } from '@supabase/supabase-js';
 import { env } from '../enviroment';
-import { createClient } from '@supabase/supabase-js'
 
 const supabase = createClient(env.SUPABASE_API_URL, env.SUPABASE_BUCKET_API_KEY)
 

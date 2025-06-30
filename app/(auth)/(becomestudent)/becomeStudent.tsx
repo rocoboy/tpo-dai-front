@@ -58,8 +58,8 @@ export default function BecomeStudentScreen({ navigation }: { navigation: any })
         setLoadingIdImages(false)
         const data = {
             dni,
-            frente: pathFront,
-            dorso: pathBack,
+            frente: pathFront ?? "",
+            dorso: pathBack ?? "",
             numeroTramite,
             medioPago,
             tarjetaCredito,
@@ -71,9 +71,9 @@ export default function BecomeStudentScreen({ navigation }: { navigation: any })
             setDialogData({ icon: "info", title: "¡Alerta!", subTitle: "Por favor, revise los campos" });
             setOpenModal(true);
             return;
+        }else {
+            mutate({ id: id, userData: { dni: Number(dni), numeroTarjeta: tarjetaCredito, dniFrente: pathFront ?? "", dniFondo: pathBack ?? "", tramite: numeroTramite, tipoTarjeta: medioPago } });
         }
-        mutate({ id: id, userData: { dni: Number(dni), numeroTarjeta: tarjetaCredito, dniFrente: pathFront ?? "", dniFondo: pathBack ?? "", tramite: numeroTramite, tipoTarjeta: medioPago } }
-        );
     };
 
     return (

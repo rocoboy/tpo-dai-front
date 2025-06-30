@@ -1,32 +1,31 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, Image, Pressable, ScrollView, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAppContext } from '@/context/Context';
-import { useNavigation } from '@react-navigation/native';
-import { useQuery } from '@tanstack/react-query';
-import { getUserProfile, getAlumnoProfile } from '@/services/auth';
-import { UserProfile, AlumnoProfile } from '@/models/auth';
-import { colors, spacing, typography, borderRadius } from '@/constants/theme';
+import Card from '@/components/ui/Card';
 import Header from '@/components/ui/Header';
 import Text from '@/components/ui/Text';
-import Card from '@/components/ui/Card';
+import { borderRadius, colors, spacing } from '@/constants/theme';
+import { useAppContext } from '@/context/Context';
+import { getUserProfile } from '@/services/auth';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import React from 'react';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function PerfilScreen() {
   const { userData, camera: {setCameraData} } = useAppContext();
   const navigation = useNavigation();
+  const queryClient = useQueryClient();
+
+  useFocusEffect(
+    React.useCallback(() => {
+      queryClient.invalidateQueries({ queryKey: ['userProfile', userData.id] });
+    }, [queryClient, userData.id])
+  );
 
   // Query para obtener el perfil completo del usuario
   const { data: userProfile, isLoading, error } = useQuery({
     queryKey: ['userProfile', userData.id],
     queryFn: () => getUserProfile(userData.id, userData.token),
     enabled: !!userData.token && userData.id > 0,
-  });
-
-  // Query para obtener datos de alumno si el usuario es alumno
-  const { data: alumnoProfile } = useQuery({
-    queryKey: ['alumnoProfile'],
-    queryFn: () => getAlumnoProfile(userData.token),
-    enabled: !!userData.token && userProfile?.tipoUsuario === 'Alumno',
   });
 
   if (isLoading) {
@@ -51,8 +50,10 @@ export default function PerfilScreen() {
   }
 
   const user = userProfile || userData;
-  const alumno = alumnoProfile;
+  const alumno = userProfile?.alumno;
 
+  console.log("user", user);
+  console.log("alumno", alumno);
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <Header title="Perfil" onBack={() => navigation.goBack()} rightButton={null} />
@@ -98,7 +99,7 @@ export default function PerfilScreen() {
             <Text variant="body" style={styles.value}>{user.tipoUsuario}</Text>
           </Card>
           
-          {alumno ? (
+          {alumno && (
             <Card variant="elevated" style={styles.alumnoCard}>
               <Text variant="h3" color="primary" style={styles.sectionTitle}>
                 Datos de Alumno
@@ -115,7 +116,9 @@ export default function PerfilScreen() {
               <Text variant="label" color="secondary" style={styles.label}>Cuenta corriente:</Text>
               <Text variant="body" style={styles.value}>${alumno.cuentaCorriente}</Text>
             </Card>
-          ) : user.tipoUsuario === 'Usuario' ? (
+          )}
+
+          {!alumno && user.tipoUsuario === 'Usuario' ? (
             <Pressable style={styles.btnAlumno} onPress={() => {navigation.navigate('becomeStudent' as never),setCameraData({actualIdSide: "front", frontURI: "", backURI: "" }) }}>
               <Text variant="body" color="primary" weight="bold" style={styles.btnAlumnoText}>
                 Volverse estudiante

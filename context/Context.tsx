@@ -1,7 +1,6 @@
 import { FontAwesome } from "@expo/vector-icons";
-import { createContext, ReactNode, useState, Dispatch, SetStateAction, useContext } from "react";
+import React, { createContext, Dispatch, ReactNode, SetStateAction, useContext, useState } from "react";
 type FontAwesomeIconName = keyof typeof FontAwesome.glyphMap;
-import React from "react";
 
 export interface FotoReceta {
   extension: string;
@@ -39,6 +38,7 @@ interface ContextType {
     login: {
         isLoggedIn: boolean;
         setIsLoggedIn: Dispatch<SetStateAction<boolean>>;
+        isVisitor: boolean;
     };
     modal: {
         isOpenModal: boolean;
@@ -110,7 +110,8 @@ const Context = createContext<ContextType>({
     },
     login: {
         isLoggedIn: false,
-        setIsLoggedIn: () => { }
+        setIsLoggedIn: () => { },
+        isVisitor: true,
     },
     modal: {
         isOpenModal: false,
@@ -150,6 +151,7 @@ const Context = createContext<ContextType>({
 
 const ContextProvider = ({ children }: { children: ReactNode }) => {
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [isVisitor, setIsVisitor] = useState(true);
     const [isOpenModal, setOpenModal] = useState(false);
     const [type, setType] = useState("");
     const [isLoading, setIsLoading] = useState(false);
@@ -166,7 +168,7 @@ const ContextProvider = ({ children }: { children: ReactNode }) => {
             isLoading,
             setIsLoading,
         },
-        login: { isLoggedIn, setIsLoggedIn },
+        login: { isLoggedIn, setIsLoggedIn, isVisitor: !isLoggedIn },
         modal: { isOpenModal, setOpenModal, type, setType, dialog: dialogData, setDialogData, modalProps, setModalProps },
         userData: {email: userData.email, alias: userData.alias, token: userData.token, id: userData.id, setUserData},
         register: {student: registerStudent, setRegisterStudent},

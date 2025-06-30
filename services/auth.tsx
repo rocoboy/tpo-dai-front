@@ -1,6 +1,6 @@
 import { LoginPost, RecoverPasswordPost, RegisterAlumnPost, RegisterPost, ResetPasswordPost, ValidatePost } from "@/models/auth";
 
-import { env }from "../enviroment";
+import { env } from "../enviroment";
 export const loginUser = async ({ email, password }: LoginPost) => {
 
   const response = await fetch(`http://${env.API_URL}/auth/login`, {
@@ -123,7 +123,7 @@ export const resetPassword = async ({ email, code, newPassword }: ResetPasswordP
 };
 
 export const upgradeAccount = async ({ id, userData}: RegisterAlumnPost) => {
-  const response = await fetch(`http://${env.API_URL}/auth/register-alumno/${id}`, {
+  const response = await fetch(`http://${env.API_URL}/alumnos/updateProfile`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -147,8 +147,8 @@ export const upgradeAccount = async ({ id, userData}: RegisterAlumnPost) => {
 };
 
 export const upgradeUser = async ({ id, userData }: RegisterAlumnPost) => {
-  console.log("DATOS", userData);
-  const response = await fetch(`http://${env.API_URL}/users/upgrade/${id}`, {
+  console.log("DATOS", userData, id);
+  const response = await fetch(`http://${env.API_URL}/auth/register-alumno/${id}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

@@ -33,6 +33,7 @@ export const handleUploadPhoto = async (frontURI: string, backURI: string, id: n
 
         const responsefront = await uploadFile(frontFileContent, "frente", id, frontFileExtension || 'jpg');
         const responseBack = await uploadFile(backFileContent, "dorso", id, backFileExtension || 'jpg');
+
         return {pathBack: responseBack?.fullPath, pathFront: responsefront?.fullPath};
     } catch (error: any) {
         throw Error(error);

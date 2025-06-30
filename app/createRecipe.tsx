@@ -5,6 +5,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import theme from '@/constants/types';
 import { useAppContext, UtilizadoReceta } from '@/context/Context';
+import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { uploadFile } from '@/services/bucket';
 import { createRecipe, getAllRecipeTypes } from '@/services/receta';
 import { FontAwesome } from '@expo/vector-icons';
@@ -19,6 +20,7 @@ const CreateRecipeScreen = () => {
   const navigation = useNavigation<RootStackNavigationProp>();
   const route = useRoute<RouteProp<RootStackParamList, 'createRecipe'>>();
   const { modal, userData, recipeDraft, setRecipeDraft, clearRecipeDraft } = useAppContext();
+  const { requireAuth } = useRequireAuth();
   const queryClient = useQueryClient();
 
   const [tiposReceta, setTiposReceta] = useState<{ idTipo: string; descripcion: string }[]>([]);
@@ -67,17 +69,19 @@ const CreateRecipeScreen = () => {
   };
 
   const handleAddIngredient = () => {
-    const idsYaAgregados = recipeDraft.utilizados.map(i => i.idIngrediente);
-    modal.setType('addIngredient');
-    modal.setModalProps({
-      idsYaAgregados,
-      onSubmit: (ingredient: any) => {
-        setRecipeDraft(d => ({ ...d, utilizados: [...d.utilizados, ingredient] }));
-        modal.setOpenModal(false);
-      },
-      onCancel: () => modal.setOpenModal(false),
+    requireAuth(() => {
+      const idsYaAgregados = recipeDraft.utilizados.map(i => i.idIngrediente);
+      modal.setType('addIngredient');
+      modal.setModalProps({
+        idsYaAgregados,
+        onSubmit: (ingredient: any) => {
+          setRecipeDraft(d => ({ ...d, utilizados: [...d.utilizados, ingredient] }));
+          modal.setOpenModal(false);
+        },
+        onCancel: () => modal.setOpenModal(false),
+      });
+      modal.setOpenModal(true);
     });
-    modal.setOpenModal(true);
   };
 
   const handleEditIngredient = (index: any) => {
@@ -129,20 +133,22 @@ const CreateRecipeScreen = () => {
   };
 
   const handlePublicar = () => {
-    if (!recipeDraft.nombreReceta || !recipeDraft.descripcionReceta || !recipeDraft.porciones || recipeDraft.utilizados.length === 0 || recipeDraft.pasos.length === 0) {
-      modal.setType('dialog');
-      modal.setDialogData({
-        title: 'Campos Incompletos',
-        subTitle: 'Por favor, completa todos los campos obligatorios (*).',
-        icon: 'exclamation-triangle',
-        onButtonPress: () => modal.setOpenModal(false),
-      });
-      modal.setOpenModal(true);
-      return;
-    }
-    const payload = { ...recipeDraft };
-    createRecipeMutation.mutate(payload);
-    clearRecipeDraft();
+    requireAuth(() => {
+      if (!recipeDraft.nombreReceta || !recipeDraft.descripcionReceta || !recipeDraft.porciones || recipeDraft.utilizados.length === 0 || recipeDraft.pasos.length === 0) {
+        modal.setType('dialog');
+        modal.setDialogData({
+          title: 'Campos Incompletos',
+          subTitle: 'Por favor, completa todos los campos obligatorios (*).',
+          icon: 'exclamation-triangle',
+          onButtonPress: () => modal.setOpenModal(false),
+        });
+        modal.setOpenModal(true);
+        return;
+      }
+      const payload = { ...recipeDraft };
+      createRecipeMutation.mutate(payload);
+      clearRecipeDraft();
+    });
   };
 
   const handlePhotoTaken = async (photoUri: string) => {

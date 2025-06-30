@@ -35,6 +35,8 @@ export async function inscribirACurso({ idCurso, idCronograma }: InscripcionCurs
 }
 
 export async function getMisCursos(token: string): Promise<InscripcionAlumno[]> {
+
+  console.log("token", token);
   const response = await fetch(`http://${env.API_URL}/courses/myCourses`, {
     method: 'GET',
     headers: {
@@ -42,9 +44,16 @@ export async function getMisCursos(token: string): Promise<InscripcionAlumno[]> 
       'Authorization': `Bearer ${token}`,
     },
   });
+
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.message || 'Error al obtener mis cursos');
+    const errorData: any = await response.json();
+
+    console.log("errorrrrrrrr", errorData);
+    if (errorData.message) {
+      throw errorData;
+    }
+
+    throw new Error('Something went wrong!');
   }
   return response.json();
 }
