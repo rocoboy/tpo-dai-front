@@ -163,11 +163,17 @@ export default function LoginScreen({navigation} : {navigation: any}) {
         </Pressable>
         }
         
-        <View style={{ width: "100%", paddingBottom: 20 }}>
-          <CustomButton text={isPendingLogin ? 'Cargando...' : 'Iniciar Sesión'} variant="primary" onPress={handleLogin} disabled={isPendingLogin} ></CustomButton>
+        <View style={{ width: "100%", paddingTop: 10 }}>
+          <CustomButton text={isPendingLogin ? 'Iniciando sesión...' : 'Iniciar Sesión'} variant={"primary"} onPress={handleLogin} disabled={isPendingLogin}></CustomButton>
         </View>
 
-        <Text style={componentsStyles.text}>Ingresar como visitante</Text>
+        <View style={{ width: "100%", paddingTop: 10 }}>
+          <CustomButton text="Ingresar como visitante" variant={"secondary"} onPress={() => {
+            setIsLoggedIn(true);
+            setUserData({ email: "", alias: "invitado", token: "", id: 0 });
+          }} disabled={false}></CustomButton>
+        </View>
+
 
         {isPendingLogin && <ActivityIndicator size="large" color="#4A90E2" />}
       </View>

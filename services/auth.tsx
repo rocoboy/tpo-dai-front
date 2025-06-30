@@ -3,7 +3,7 @@ import { LoginPost, RecoverPasswordPost, RegisterAlumnPost, RegisterPost, ResetP
 import { env } from "../enviroment";
 export const loginUser = async ({ email, password }: LoginPost) => {
 
-  const response = await fetch(`http://${env.API_URL}/auth/login`, {
+  const response = await fetch(`${env.API_URL}/auth/login`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -28,7 +28,7 @@ export const loginUser = async ({ email, password }: LoginPost) => {
 };
 
 export const registerUser = async ({ mail, nickname }: RegisterPost) => {
-  const response = await fetch(`http://${env.API_URL}/auth/register`, {
+  const response = await fetch(`${env.API_URL}/auth/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -50,7 +50,7 @@ export const registerUser = async ({ mail, nickname }: RegisterPost) => {
 };
 
 export const validateUser = async ({ username, code, password }: ValidatePost) => {
-  const response = await fetch(`http://${env.API_URL}/auth/validate`, {
+  const response = await fetch(`${env.API_URL}/auth/validate`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -73,7 +73,7 @@ export const validateUser = async ({ username, code, password }: ValidatePost) =
 };
 
 export const recoverAccount = async ({ mail }: RecoverPasswordPost) => {
-  const response = await fetch(`http://${env.API_URL}/auth/recover-password`, {
+  const response = await fetch(`${env.API_URL}/auth/recover-password`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -98,7 +98,7 @@ export const recoverAccount = async ({ mail }: RecoverPasswordPost) => {
 };
 
 export const resetPassword = async ({ email, code, newPassword }: ResetPasswordPost) => {
-  const response = await fetch(`http://${env.API_URL}/auth/reset-password`, {
+  const response = await fetch(`${env.API_URL}/auth/reset-password`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -123,7 +123,7 @@ export const resetPassword = async ({ email, code, newPassword }: ResetPasswordP
 };
 
 export const upgradeAccount = async ({ id, userData}: RegisterAlumnPost) => {
-  const response = await fetch(`http://${env.API_URL}/alumnos/updateProfile`, {
+  const response = await fetch(`${env.API_URL}/alumnos/updateProfile`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -148,7 +148,7 @@ export const upgradeAccount = async ({ id, userData}: RegisterAlumnPost) => {
 
 export const upgradeUser = async ({ id, userData }: RegisterAlumnPost) => {
   console.log("DATOS", userData, id);
-  const response = await fetch(`http://${env.API_URL}/auth/register-alumno/${id}`, {
+  const response = await fetch(`${env.API_URL}/auth/register-alumno/${id}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -167,7 +167,7 @@ export const upgradeUser = async ({ id, userData }: RegisterAlumnPost) => {
 };
 
 export const getUserProfile = async (id: number, token: string) => {
-  const response = await fetch(`http://${env.API_URL}/users/${id}`, {
+  const response = await fetch(`${env.API_URL}/users/${id}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -188,7 +188,7 @@ export const getUserProfile = async (id: number, token: string) => {
 };
 
 export const getAlumnoProfile = async (token: string) => {
-  const response = await fetch(`http://${env.API_URL}/alumnos/profile`, {
+  const response = await fetch(`${env.API_URL}/alumnos/profile`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',

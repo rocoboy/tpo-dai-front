@@ -2,7 +2,7 @@ import { Curso, CursoDetail, InscripcionAlumno, InscripcionCurso, RegistrarAsist
 import { env } from "../enviroment";
 export async function getCursos(): Promise<Curso[]> {
   console.log("cursos a obtener");
-  const response = await fetch(`http://${env.API_URL}/courses`);
+  const response = await fetch(`${env.API_URL}/courses`);
   if (!response.ok) {
     throw new Error('Error al obtener los cursos');
   }
@@ -11,7 +11,7 @@ export async function getCursos(): Promise<Curso[]> {
 }
 
 export async function getCursoDetail(id: string): Promise<CursoDetail> {
-  const response = await fetch(`http://${env.API_URL}/courses/${id}`);
+  const response = await fetch(`${env.API_URL}/courses/${id}`);
   if (!response.ok) {
     throw new Error('Error al obtener el detalle del curso');
   }
@@ -19,7 +19,7 @@ export async function getCursoDetail(id: string): Promise<CursoDetail> {
 }
 
 export async function inscribirACurso({ idCurso, idCronograma }: InscripcionCurso, token: string): Promise<any> {
-  const response = await fetch(`http://${env.API_URL}/courses/${idCurso}/enroll`, {
+  const response = await fetch(`${env.API_URL}/courses/${idCurso}/enroll`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -37,7 +37,7 @@ export async function inscribirACurso({ idCurso, idCronograma }: InscripcionCurs
 export async function getMisCursos(token: string): Promise<InscripcionAlumno[]> {
 
   console.log("token", token);
-  const response = await fetch(`http://${env.API_URL}/courses/myCourses`, {
+  const response = await fetch(`${env.API_URL}/courses/myCourses`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -59,7 +59,7 @@ export async function getMisCursos(token: string): Promise<InscripcionAlumno[]> 
 }
 
 export async function darDeBajaCurso(idInscripcion: string, token: string): Promise<any> {
-  const response = await fetch(`http://${env.API_URL}/courses/${idInscripcion}/unenroll`, {
+  const response = await fetch(`${env.API_URL}/courses/${idInscripcion}/unenroll`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -77,7 +77,7 @@ export async function registrarAsistencia(
   idCronograma: string, 
   token: string
 ): Promise<RegistrarAsistenciaResponse> {
-  const response = await fetch(`http://${env.API_URL}/courses/${idCronograma}/attendance`, {
+  const response = await fetch(`${env.API_URL}/courses/${idCronograma}/attendance`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

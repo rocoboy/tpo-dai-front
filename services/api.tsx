@@ -47,7 +47,7 @@ export const apiFetch = async (
   context?: { userData: any; modal: any }
 ) => {
   // Construir la URL completa
-  const fullUrl = url.startsWith('http') ? url : `http://${env.API_URL}${url}`;
+  const fullUrl = url.startsWith('http') ? url : `${env.API_URL}${url}`;
   
   // Preparar headers
   const headers = requireAuth && context?.userData?.token

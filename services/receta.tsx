@@ -1,8 +1,6 @@
-import { useAppContext } from '@/context/Context';
-import { env } from '@/enviroment';
-import { Receta } from '@/models/receta';
-import { Calificacion } from '@/models/receta';
-import { apiGet, apiPost, apiDelete } from './api';
+
+import { Calificacion, Receta } from '@/models/receta';
+import { apiDelete, apiGet, apiPost } from './api';
 
 export async function getTrendingsRecipes(context?: { userData: any; modal: any }): Promise<Receta[]> {
   return apiGet('/recipes/trendings', true, context);

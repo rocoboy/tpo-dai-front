@@ -22,7 +22,6 @@ const CreateRecipeScreen = () => {
   const { modal, userData, recipeDraft, setRecipeDraft, clearRecipeDraft } = useAppContext();
   const { requireAuth } = useRequireAuth();
   const queryClient = useQueryClient();
-
   const [tiposReceta, setTiposReceta] = useState<{ idTipo: string; descripcion: string }[]>([]);
   const [showTipoDropdown, setShowTipoDropdown] = useState(false);
   const [showCamera, setShowCamera] = useState(false);

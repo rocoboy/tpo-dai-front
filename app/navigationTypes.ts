@@ -1,5 +1,4 @@
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-
 export type RootStackParamList = {
   home: undefined;
   recipeDetail: { recetaId: number };
