@@ -1,17 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, FlatList } from 'react-native';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { FontAwesome } from '@expo/vector-icons';
-import { ThemedView } from '@/components/ThemedView';
-import { ThemedText } from '@/components/ThemedText';
-import InputText from '@/components/InputText';
 import CustomButton from '@/components/Button';
+import InputText from '@/components/InputText';
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
 import theme from '@/constants/types';
 import { useAppContext, UtilizadoReceta } from '@/context/Context';
-import { RootStackNavigationProp, RootStackParamList } from './navigationTypes';
-import { RouteProp, useRoute } from '@react-navigation/native';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createRecipe, getAllRecipeTypes } from '@/services/receta';
+import { FontAwesome } from '@expo/vector-icons';
+import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useEffect, useState } from 'react';
+import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { RootStackNavigationProp, RootStackParamList } from './navigationTypes';
 
 const CreateRecipeScreen = () => {
   const navigation = useNavigation<RootStackNavigationProp>();

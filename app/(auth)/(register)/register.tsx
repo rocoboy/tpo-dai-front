@@ -1,24 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Image, Switch } from 'react-native';
-import { useMutation } from '@tanstack/react-query';
-import { registerUser } from '@/services/auth';
-import { useAppContext } from '@/context/Context';
-import styles from "./styles";
-import componentsStyles from '@/constants/styles';
-import InputText from '@/components/InputText';
 import CustomButton from '@/components/Button';
+import InputText from '@/components/InputText';
+import componentsStyles from '@/constants/styles';
 import theme from '@/constants/types';
+import { useAppContext } from '@/context/Context';
+import { registerUser } from '@/services/auth';
 import { FontAwesome } from '@expo/vector-icons';
+import { useMutation } from '@tanstack/react-query';
+import React, { useEffect, useState } from 'react';
+import { Image, Switch, Text, View } from 'react-native';
+import styles from "./styles";
 
 export default function RegisterScreen({ navigation }: { navigation: any }) {
   const [nickname, setNickname] = useState('');
   const [mail, setMail] = useState('');
-  const { modal: { setOpenModal, setType, setDialogData }, userData: { setUserData }, login: { setIsLoggedIn }, register: { student, setRegisterStudent } } = useAppContext();
+  const { modal: { setOpenModal, setType, setDialogData, setModalProps }, userData: { setUserData }, login: { setIsLoggedIn }, register: { student, setRegisterStudent } } = useAppContext();
 
   const { isPending, mutate } = useMutation({
     mutationFn: registerUser,
     onSuccess: (data) => {
       setType("register");
+      setModalProps({navigation});
       setUserData({ email: mail, alias: nickname, token: "", id: data.idUsuario });
       setOpenModal(true);
     },

@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TextInput, Button, Alert, StyleSheet, ActivityIndicator, Pressable, Image, Switch } from 'react-native';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { loginUser, recoverAccount } from '@/services/auth';
-import { useAppContext } from '@/context/Context';
-import styles from "./styles";
 import CustomButton from '@/components/Button';
-import componentsStyles from '@/constants/styles';
 import InputText from '@/components/InputText';
+import componentsStyles from '@/constants/styles';
 import theme from '@/constants/types';
+import { useAppContext } from '@/context/Context';
+import { loginUser, recoverAccount } from '@/services/auth';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Image, Pressable, Switch, Text, View } from 'react-native';
+import styles from "./styles";
 
 import * as SecureStore from 'expo-secure-store';
 

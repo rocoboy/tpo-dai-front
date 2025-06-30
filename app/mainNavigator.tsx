@@ -1,22 +1,22 @@
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAppContext } from '@/context/Context';
-import HomeScreen from './(home)/home';
-import LoginScreen from './(auth)/(login)/login';
-import RegisterScreen from './(auth)/(register)/register';
-import RecoverPassword from './(auth)/(recover)/recoverPassword';
-import ValidateScreen from './(auth)/(validate)/validate';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import BecomeStudentScreen from "./(auth)/(becomestudent)/becomeStudent";
-import RecipeDetail from './(home)/(recipeDetail)/recipeDetail';
+import LoginScreen from './(auth)/(login)/login';
+import RecoverPassword from './(auth)/(recover)/recoverPassword';
+import RegisterScreen from './(auth)/(register)/register';
+import ValidateScreen from './(auth)/(validate)/validate';
 import CursoDetailScreen from './(home)/(cursoDetail)/cursoDetail';
-import QRScannerScreen from './qrScanner';
-import PerfilScreen from './perfil';
-import CreateRecipeScreen from './createRecipe';
+import RecipeDetail from './(home)/(recipeDetail)/recipeDetail';
+import HomeScreen from './(home)/home';
 import AddStepScreen from './addStep';
+import CreateRecipeScreen from './createRecipe';
+import PerfilScreen from './perfil';
+import QRScannerScreen from './qrScanner';
 
-import CursosScreen from './cursos';
-import RecetasScreen from './recetas';
 import React from 'react';
 import { StyleSheet } from 'react-native';
+import CursosScreen from './cursos';
+import RecetasScreen from './recetas';
 
 const Stack = createNativeStackNavigator();
 

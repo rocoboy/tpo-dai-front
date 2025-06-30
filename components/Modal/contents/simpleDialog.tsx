@@ -3,7 +3,7 @@ import componentsStyles from "@/constants/styles";
 import theme from "@/constants/types";
 import { useAppContext } from "@/context/Context";
 import { FontAwesome5 } from "@expo/vector-icons";
-import { Text, View, TouchableOpacity } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
 
 export default function SimpleDialog() {
     const { modal: { setOpenModal, dialog } } = useAppContext();

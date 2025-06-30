@@ -38,3 +38,5 @@ yarn-error.*
 
 app-example
 enviroment.js
+.cursor/proyecto.txt
+.cursor/rules/estructura.mdc

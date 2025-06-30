@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import Modal from 'react-native-modal';
-import styles from './styles';
 import { useAppContext } from '@/context/Context';
-import RegisterModal from './contents/register';
-import CompleteFields from './contents/completeFields';
-import SimpleDialog from './contents/simpleDialog';
-import RecalcularIngredientesModal from './contents/recalcularIngredientes';
-import EscalarPorcionesModal from './contents/escalarPorciones';
-import CourseOptionsModal from './contents/courseOptions';
+import React from 'react';
+import { View } from 'react-native';
+import Modal from 'react-native-modal';
 import AddIngredientContent from './contents/addIngredient';
+import CompleteFields from './contents/completeFields';
+import CourseOptionsModal from './contents/courseOptions';
+import EscalarPorcionesModal from './contents/escalarPorciones';
+import RecalcularIngredientesModal from './contents/recalcularIngredientes';
+import RegisterModal from './contents/register';
+import SimpleDialog from './contents/simpleDialog';
+import styles from './styles';
 
 const CustomModal = () => {
   const { modal: { isOpenModal, setOpenModal, type, modalProps } } = useAppContext();
@@ -28,9 +28,9 @@ const CustomModal = () => {
       style={styles.modal}
     >
       <View style={styles.modalContent}>
-        {type == "register" && <RegisterModal/>}
-        {type == "completeFields" && <CompleteFields/>}
-        {type == "dialog" && <SimpleDialog/>}
+        {type == "register" && <RegisterModal {...modalProps} />}
+        {type == "completeFields" && <CompleteFields {...modalProps} />}
+        {type == "dialog" && <SimpleDialog {...modalProps} />}
         {type == "recalcularIngredientes" && (
           <RecalcularIngredientesModal
             {...modalProps}

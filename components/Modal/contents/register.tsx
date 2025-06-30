@@ -1,18 +1,16 @@
 import CustomButton from "@/components/Button";
-import { StyleSheet, Text, View } from "react-native";
-import { useNavigation } from '@react-navigation/native';
-import { useAppContext } from "@/context/Context";
-import theme from "@/constants/types";
-import { FontAwesome5 } from "@expo/vector-icons";
 import componentsStyles from "@/constants/styles";
+import theme from "@/constants/types";
+import { useAppContext } from "@/context/Context";
+import { FontAwesome5 } from "@expo/vector-icons";
+import { Text, View } from "react-native";
 
-export default function RegisterModal() {
-    const navigation = useNavigation();
+export default function RegisterModal({ navigation }: { navigation: any }) {
     const { modal: { setOpenModal} } = useAppContext();
 
     const handleNavigate = () => {
-        navigation.navigate('validate' as never)
-        setOpenModal(false)
+        setOpenModal(false);
+        navigation.navigate('validate');
     }
 
     return <View style={{ display: "flex", flexDirection: "column", gap: 20, width: "100%" }}>
@@ -44,31 +42,3 @@ export default function RegisterModal() {
     </View>
 }
 
-const styles = StyleSheet.create({
-    view: {
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 10,
-    },
-    text: {
-        fontSize: 18
-    },
-    textInput: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 5,
-        width: "70%",
-    },
-    button: {
-        display: "flex",
-        alignContent: "center",
-        justifyContent: "center",
-        flexDirection: "column",
-        borderWidth: 1,
-        borderColor: '#ccc',
-        borderRadius: 5,
-        width: "70%",
-    }
-});
