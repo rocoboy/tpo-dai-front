@@ -1,11 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TextInput, ActivityIndicator, Image, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { getFilteredRecipes, getFavorites } from '@/services/receta';
+import Header from '@/components/ui/Header';
 import { useAppContext } from '@/context/Context';
 import { Receta } from '@/models/receta';
+import { getFavorites, getFilteredRecipes } from '@/services/receta';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import Header from '@/components/ui/Header';
+import React from 'react';
+import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const FILTERS = [
   { key: 'nombre', label: 'Receta' },
@@ -145,6 +145,21 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
     );
   }
 
+  const handleCreateRecipe = () => {
+    if (userData.alias === 'invitado') {
+      modal.setType('dialog');
+      modal.setDialogData({
+        title: 'Acceso Restringido',
+        subTitle: 'Necesitas iniciar sesión para crear recetas.',
+        icon: 'exclamation-triangle',
+        onButtonPress: () => modal.setOpenModal(false),
+      });
+      modal.setOpenModal(true);
+    } else {
+      navigation.navigate('createRecipe');
+    }
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <Header
@@ -152,7 +167,7 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
         onBack={() => navigation.goBack()}
         centerComponent={renderDropdown()}
         rightButton={
-          <TouchableOpacity style={styles.createButton} onPress={() => navigation.navigate('createRecipe')}>
+          <TouchableOpacity style={styles.createButton} onPress={handleCreateRecipe}>
             <FontAwesome name="cutlery" size={28} color="#fff" style={{ marginRight: 6 }} />
             <Text style={styles.createButtonPlus}>+</Text>
           </TouchableOpacity>

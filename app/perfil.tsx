@@ -118,7 +118,7 @@ export default function PerfilScreen() {
             </Card>
           )}
 
-          {!alumno && user.tipoUsuario === 'Usuario' ? (
+          {!alumno && user.tipoUsuario === 'Usuario' && user.alias !== 'invitado' ? (
             <Pressable style={styles.btnAlumno} onPress={() => {navigation.navigate('becomeStudent' as never),setCameraData({actualIdSide: "front", frontURI: "", backURI: "" }) }}>
               <Text variant="body" color="primary" weight="bold" style={styles.btnAlumnoText}>
                 Volverse estudiante

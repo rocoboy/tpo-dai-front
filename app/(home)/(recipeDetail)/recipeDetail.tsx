@@ -1,14 +1,14 @@
-import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, Pressable, ActivityIndicator, TextInput } from 'react-native';
+import CustomButton from '@/components/Button';
+import theme from '@/constants/types';
+import { useAppContext } from '@/context/Context';
+import { Calificacion, IngredienteEscalado, IngredienteEscaladoFrontend, Paso, RecetaDetalle, Utilizado } from '@/models/receta';
+import { addToFavorites, createRecipeComment, getFavorites, getRecipeById, getRecipeComments, removeFromFavorites, scaleRecipeByIngredient, scaleRecipeByPortions } from '@/services/receta';
 import FontAwesome from '@expo/vector-icons/build/FontAwesome';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import theme from '@/constants/types';
 import { useRoute } from '@react-navigation/native';
-import { getRecipeById, getRecipeComments, createRecipeComment, addToFavorites, removeFromFavorites, getFavorites, scaleRecipeByIngredient, scaleRecipeByPortions } from '@/services/receta';
-import { useAppContext } from '@/context/Context';
-import { Paso, Receta, RecetaDetalle, Utilizado, Calificacion, IngredienteEscalado, IngredienteEscaladoFrontend } from '@/models/receta';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import CustomButton from '@/components/Button';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import React from 'react';
+import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 export default function RecipeDetailScreen({ navigation }: { navigation: any }) {
   const route = useRoute();
@@ -196,7 +196,18 @@ export default function RecipeDetailScreen({ navigation }: { navigation: any }) 
   if (!receta) return <Text style={{ marginTop: 40 }}>No se encontró la receta.</Text>;
 
   const handleComentar = () => {
-    crearComentarioMutation.mutate({ valor, comentario });
+    if (userData.alias === 'invitado') {
+      modal.setType('dialog');
+      modal.setDialogData({
+        title: 'Acceso Restringido',
+        subTitle: 'Necesitas iniciar sesión para comentar en las recetas.',
+        icon: 'exclamation-triangle',
+        onButtonPress: () => modal.setOpenModal(false),
+      });
+      modal.setOpenModal(true);
+    } else {
+      crearComentarioMutation.mutate({ valor, comentario });
+    }
   };
 
   const handleToggleFavorite = () => {
@@ -353,8 +364,12 @@ export default function RecipeDetailScreen({ navigation }: { navigation: any }) 
             </View>
           ))}
           <View style={{ marginTop: 16 }}>
-            {userData && (userData as any).rol === 'Invitado' ? (
-              <Text style={{ color: 'red', fontWeight: 'bold' }}>NO DISPONIBLE COMO INVITADO</Text>
+            {userData.alias === 'invitado' ? (
+              <View style={{ backgroundColor: '#f8f8f8', borderRadius: 8, padding: 15, marginTop: 10 }}>
+                <Text style={{ color: '#666', textAlign: 'center', fontWeight: 'bold' }}>
+                  Inicia sesión para comentar en esta receta
+                </Text>
+              </View>
             ) : (
               <View>
                 <Text style={{ fontWeight: 'bold', marginBottom: 4 }}>Dejá tu comentario:</Text>

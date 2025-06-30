@@ -1,21 +1,38 @@
-import React from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Image, ImageBackground, FlatList } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
+import BottomBar from '@/components/BottomBar';
 import theme from '@/constants/types';
 import { useAppContext } from '@/context/Context';
-import FontAwesome from '@expo/vector-icons/build/FontAwesome';
-import { useMutation } from '@tanstack/react-query';
-import { getTrendingsRecipes } from '@/services/receta';
-import { getCursos } from '@/services/curso';
-import NetInfo from '@react-native-community/netinfo';
-import { Receta } from '@/models/receta';
 import { Curso } from '@/models/curso';
-import BottomBar from '@/components/BottomBar';
+import { Receta } from '@/models/receta';
+import { getCursos } from '@/services/curso';
+import { getTrendingsRecipes } from '@/services/receta';
+import FontAwesome from '@expo/vector-icons/build/FontAwesome';
+import NetInfo from '@react-native-community/netinfo';
+import { useMutation } from '@tanstack/react-query';
+import * as SecureStore from 'expo-secure-store';
+import React from 'react';
+import { FlatList, Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 function CursoCard({ curso, navigation }: { curso: Curso, navigation: any }) {
+  const { userData, modal: { setType, setDialogData, setOpenModal } } = useAppContext();
   const cronograma = curso.cronogramas[0];
+
+  const handlePress = () => {
+    if (userData.alias === 'invitado') {
+      setType('dialog');
+      setDialogData({
+        title: 'Acceso Restringido',
+        subTitle: 'Necesitas iniciar sesión para ver los detalles del curso.',
+        icon: 'exclamation-triangle',
+        onButtonPress: () => setOpenModal(false),
+      });
+      setOpenModal(true);
+    } else {
+      navigation.navigate('cursoDetail', { idCurso: curso.idCurso });
+    }
+  };
+
   return (
-    <Pressable onPress={() => navigation.navigate('cursoDetail', { idCurso: curso.idCurso })} style={styles.card}>
+    <Pressable onPress={handlePress} style={styles.card}>
       <View style={[styles.row, { justifyContent: 'space-between' }]}>
         <Text style={styles.titulo}>{curso.nombre}</Text>
         <View style={styles.badgePresencial}><Text style={styles.badgeText}>{curso.modalidad.toUpperCase()}</Text></View>
@@ -79,7 +96,7 @@ export default function HomeScreen({ navigation }: { navigation: any }) {
         <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
           <View style={styles.header}>
             <Pressable style={styles.logoutBtn} onPress={removeSession}>
-              <Text style={styles.logoutText}>Cerrar sesión</Text>
+              <Text style={styles.logoutText}>{userData.alias === 'invitado' ? 'Salir' : 'Cerrar sesión'}</Text>
             </Pressable>
             <ImageBackground
               source={require('@/assets/images/welcome-card.png')}

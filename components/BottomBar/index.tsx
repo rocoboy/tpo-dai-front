@@ -1,13 +1,15 @@
-import React from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useAppContext } from '@/context/Context';
+import { useThemeColor } from '@/hooks/useThemeColor';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useThemeColor } from '@/hooks/useThemeColor';
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function BottomBar() {
   const navigation = useNavigation();
   const route = useRoute();
   const secondaryColor = useThemeColor({}, 'secondary');
+  const { userData } = useAppContext();
 
   const isActive = (screenName: string) => {
     return route.name === screenName;
@@ -78,23 +80,26 @@ export default function BottomBar() {
           Recetas
         </Text>
       </Pressable>
-      <Pressable 
-        style={styles.bottomBarItem} 
-        onPress={() => navigation.navigate('perfil' as never)}
-      >
-        <FontAwesome 
-          name="user" 
-          size={28} 
-          color={isActive('perfil') ? '#FFFFFF' : secondaryColor} 
-        />
-        <Text style={[
-          styles.bottomBarLabel, 
-          { color: isActive('perfil') ? '#FFFFFF' : secondaryColor },
-          isActive('perfil') && styles.bottomBarLabelActive
-        ]}>
-          Perfil
-        </Text>
-      </Pressable>
+      
+      {userData.alias !== 'invitado' && (
+        <Pressable 
+          style={styles.bottomBarItem} 
+          onPress={() => navigation.navigate('perfil' as never)}
+        >
+          <FontAwesome 
+            name="user" 
+            size={28} 
+            color={isActive('perfil') ? '#FFFFFF' : secondaryColor} 
+          />
+          <Text style={[
+            styles.bottomBarLabel, 
+            { color: isActive('perfil') ? '#FFFFFF' : secondaryColor },
+            isActive('perfil') && styles.bottomBarLabelActive
+          ]}>
+            Perfil
+          </Text>
+        </Pressable>
+      )}
     </View>
   );
 }
