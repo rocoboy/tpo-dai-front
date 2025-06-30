@@ -1,15 +1,18 @@
 import CustomButton from '@/components/Button';
+import CameraModal from '@/components/CameraModal/camera';
 import InputText from '@/components/InputText';
 import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import theme from '@/constants/types';
 import { useAppContext, UtilizadoReceta } from '@/context/Context';
+import { uploadFile } from '@/services/bucket';
 import { createRecipe, getAllRecipeTypes } from '@/services/receta';
 import { FontAwesome } from '@expo/vector-icons';
 import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navigation/native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import * as FileSystem from 'expo-file-system';
 import React, { useEffect, useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { RootStackNavigationProp, RootStackParamList } from './navigationTypes';
 
 const CreateRecipeScreen = () => {
@@ -20,6 +23,8 @@ const CreateRecipeScreen = () => {
 
   const [tiposReceta, setTiposReceta] = useState<{ idTipo: string; descripcion: string }[]>([]);
   const [showTipoDropdown, setShowTipoDropdown] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Mutation para crear receta
   const createRecipeMutation = useMutation({
@@ -140,6 +145,40 @@ const CreateRecipeScreen = () => {
     clearRecipeDraft();
   };
 
+  const handlePhotoTaken = async (photoUri: string) => {
+    setUploadingPhoto(true);
+    try {
+      const fileExtension = photoUri.substring(photoUri.lastIndexOf('.') + 1) || 'jpg';
+      const fileName = `principal_${Date.now()}.${fileExtension}`;
+      const fileData = await FileSystem.readAsStringAsync(photoUri, { encoding: FileSystem.EncodingType.Base64 });
+      const binaryString = atob(fileData);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const fileContent = bytes.buffer;
+      const userId = userData.id;
+      const response = await uploadFile(fileContent, fileName, userId, fileExtension);
+      if (response?.fullPath) {
+        setRecipeDraft(d => ({
+          ...d,
+          fotos: [{ extension: fileExtension, path: response.fullPath }],
+        }));
+      }
+    } catch (e) {
+      modal.setType('dialog');
+      modal.setDialogData({
+        title: 'Error',
+        subTitle: 'No se pudo subir la foto. Intenta de nuevo.',
+        icon: 'exclamation-triangle',
+        onButtonPress: () => modal.setOpenModal(false),
+      });
+      modal.setOpenModal(true);
+    }
+    setUploadingPhoto(false);
+    setShowCamera(false);
+  };
+
   const renderIngredient = ({ item, index }: { item: UtilizadoReceta, index: number }) => (
     <View style={styles.ingredientItem}>
       <ThemedText>{item.nombre}</ThemedText>
@@ -167,11 +206,18 @@ const CreateRecipeScreen = () => {
         </View>
 
         <View style={styles.photoSection}>
-          <TouchableOpacity style={styles.photoButton}>
-            <FontAwesome name="camera" size={40} color={theme.colors.muted} />
-            <ThemedText style={styles.photoText}>Publicar Foto del Plato Terminado</ThemedText>
-            <ThemedText style={styles.photoSubText}>Comparte tu plato terminado con otros cocineros</ThemedText>
-          </TouchableOpacity>
+          {recipeDraft.fotos && recipeDraft.fotos.length > 0 ? (
+            <TouchableOpacity style={styles.photoButton} onPress={() => setShowCamera(true)}>
+              <Image source={{ uri: `https://YOUR_SUPABASE_URL/storage/v1/object/public/users/${recipeDraft.fotos[0].path}` }} style={{ width: 120, height: 120, borderRadius: 10 }} />
+              <ThemedText style={styles.photoText}>Cambiar Foto del Plato</ThemedText>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity style={styles.photoButton} onPress={() => setShowCamera(true)}>
+              <FontAwesome name="camera" size={40} color={theme.colors.muted} />
+              <ThemedText style={styles.photoText}>Publicar Foto del Plato Terminado</ThemedText>
+              <ThemedText style={styles.photoSubText}>Comparte tu plato terminado con otros cocineros</ThemedText>
+            </TouchableOpacity>
+          )}
         </View>
 
         <View style={styles.formContainer}>
@@ -264,6 +310,11 @@ const CreateRecipeScreen = () => {
         <CustomButton text="Cancelar" onPress={handleGoBack} variant="secondary" disabled={false} />
         <CustomButton text="Publicar" onPress={handlePublicar} variant="primary" disabled={createRecipeMutation.isPending} />
       </View>
+      <CameraModal
+        isOpen={showCamera}
+        toogleOpen={() => setShowCamera(false)}
+        onPhotoTaken={handlePhotoTaken}
+      />
     </ThemedView>
   );
 };

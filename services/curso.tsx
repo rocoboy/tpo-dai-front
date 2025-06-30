@@ -1,8 +1,5 @@
-import { env } from '@/enviroment';
-import { Curso } from '@/models/curso';
-import { CursoDetail } from '@/models/curso';
-import { InscripcionCurso, InscripcionAlumno, RegistrarAsistenciaRequest, RegistrarAsistenciaResponse } from '@/models/curso';
-
+import { Curso, CursoDetail, InscripcionAlumno, InscripcionCurso, RegistrarAsistenciaResponse } from '@/models/curso';
+import { env } from "../enviroment";
 export async function getCursos(): Promise<Curso[]> {
   console.log("cursos a obtener");
   const response = await fetch(`http://${env.API_URL}/courses`);

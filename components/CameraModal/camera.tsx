@@ -1,19 +1,20 @@
-import { CameraView, useCameraPermissions, CameraCapturedPicture } from 'expo-camera';
-import { useState, useRef } from "react"; // Importa useRef
-import { Button, Pressable, Text, Modal, View, Image, Alert } from 'react-native'; // Importa Image y Alert
-import styles from './styles';
 import { FontAwesome } from '@expo/vector-icons';
+import { CameraCapturedPicture, CameraView, useCameraPermissions } from 'expo-camera';
+import { useRef, useState } from "react"; // Importa useRef
+import { Alert, Button, Image, Modal, Pressable, Text, View } from 'react-native'; // Importa Image y Alert
+import styles from './styles';
 
 import { useAppContext } from '@/context/Context';
 
-interface CameraModalProps {
+export interface CameraModalProps {
     isOpen: boolean;
     toogleOpen: () => void;
+    onPhotoTaken?: (uri: string) => void;
 }
 
 type Facing = 'front' | 'back';
 
-export default function CameraModal({ isOpen, toogleOpen }: CameraModalProps) {
+export default function CameraModal({ isOpen, toogleOpen, onPhotoTaken }: CameraModalProps) {
     const [facing, setFacing] = useState<Facing>('back');
     const [permission, requestPermission] = useCameraPermissions();
     const cameraRef = useRef<CameraView>(null);
@@ -40,13 +41,12 @@ export default function CameraModal({ isOpen, toogleOpen }: CameraModalProps) {
     const takePhoto = async () => {
         if (cameraRef.current) {
             try {
-                // takePictureAsync devuelve un objeto con la URI de la imagen en la caché
                 const photo: CameraCapturedPicture | undefined = await cameraRef.current.takePictureAsync({
-                    quality: 1, // Calidad de la imagen (0 a 1)
+                    quality: 1,
                 });
-
                 if (photo) {
-                    setPhotoUri(photo.uri); // Guarda la URI de la foto en el estado
+                    setPhotoUri(photo.uri);
+                    if (onPhotoTaken) onPhotoTaken(photo.uri);
                     if (actualIdSide == "front") {
                         setCameraData({ frontURI: photo.uri, backURI, actualIdSide });
                     } else {

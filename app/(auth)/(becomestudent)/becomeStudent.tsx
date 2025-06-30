@@ -1,15 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, Pressable } from 'react-native';
-import styles from "./styles";
-import componentsStyles from '@/constants/styles';
-import InputText from '@/components/InputText';
 import CustomButton from '@/components/Button';
-import { useMutation } from '@tanstack/react-query';
-import { upgradeAccount, upgradeUser } from '@/services/auth';
-import { useAppContext } from '@/context/Context';
 import CameraModal from '@/components/CameraModal/camera';
+import InputText from '@/components/InputText';
+import componentsStyles from '@/constants/styles';
+import { useAppContext } from '@/context/Context';
+import { upgradeAccount, upgradeUser } from '@/services/auth';
+import { useMutation } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
 import { handleUploadPhoto } from '../../../helpers/uploadPhotos';
- 
+import styles from "./styles";
 
 export default function BecomeStudentScreen({ navigation }: { navigation: any }) {
     const [showCamera, setShowCamera] = useState(false);
@@ -20,8 +19,6 @@ export default function BecomeStudentScreen({ navigation }: { navigation: any })
     const [vto, setVto] = useState('');
     const [cvv, setCvv] = useState('');
     const [loadingIdImages, setLoadingIdImages] = useState(false);
-
-
 
     const { modal: { setOpenModal, setType, setDialogData }, userData: { id }, login: { isLoggedIn, setIsLoggedIn }, camera: { setCameraData, frontURI, backURI } } = useAppContext();
 
