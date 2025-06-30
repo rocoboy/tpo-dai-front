@@ -248,6 +248,20 @@ export default function RecipeDetailScreen({ navigation }: { navigation: any }) 
     modal.setOpenModal(true);
   };
 
+  const handleEscalarPorciones = (targetPortions: number) => {
+    scaleByPortionsMutation.mutate(targetPortions);
+  };
+
+  const handleOpenEscalarModal = () => {
+    modal.setType("escalarPorciones");
+    modal.setModalProps({
+      porcionesActuales: porcionesEscaladas,
+      onCancel: () => modal.setOpenModal(false),
+      onSubmit: handleEscalarPorciones
+    });
+    modal.setOpenModal(true);
+  };
+
   return (
     <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 30 }}>
       <View style={styles.headerImgContainer}>
@@ -286,17 +300,7 @@ export default function RecipeDetailScreen({ navigation }: { navigation: any }) 
             <FontAwesome name="balance-scale" size={18} color={theme.colors.textLight} style={{ marginLeft: 4, opacity: 0.3 }} />
             <Pressable 
               style={styles.scaleButton} 
-              onPress={() => {
-                modal.setType("escalarPorciones");
-                modal.setModalProps({
-                  porcionesActuales: porcionesEscaladas,
-                  onCancel: () => modal.setOpenModal(false),
-                  onSubmit: (targetPortions: number) => {
-                    scaleByPortionsMutation.mutate(targetPortions);
-                  }
-                });
-                modal.setOpenModal(true);
-              }}
+              onPress={handleOpenEscalarModal}
             >
               <Text style={styles.scaleButtonText}>Escalar</Text>
             </Pressable>
