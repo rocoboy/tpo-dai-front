@@ -5,10 +5,28 @@ import { borderRadius, colors, spacing } from '@/constants/theme';
 import { useAppContext } from '@/context/Context';
 import { getUserProfile } from '@/services/auth';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import React from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Servicio para obtener datos de alumno
+async function fetchAlumnoProfile(token: string) {
+  const res = await fetch('https://tpo-dai-back.onrender.com/alumnos/profile', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Error al obtener datos de alumno');
+  return res.json();
+}
+
+// Servicio para obtener pagos
+async function fetchAlumnoPayments(token: string) {
+  const res = await fetch('https://tpo-dai-back.onrender.com/alumnos/payments', {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Error al obtener pagos');
+  return res.json();
+}
 
 export default function PerfilScreen() {
   const { userData, camera: {setCameraData} } = useAppContext();
@@ -27,6 +45,22 @@ export default function PerfilScreen() {
     queryFn: () => getUserProfile(userData.id, userData.token),
     enabled: !!userData.token && userData.id > 0,
   });
+
+  // Mutation para datos de alumno
+  const alumnoProfileMutation = useMutation({
+    mutationFn: () => fetchAlumnoProfile(userData.token),
+  });
+  // Mutation para pagos
+  const alumnoPaymentsMutation = useMutation({
+    mutationFn: () => fetchAlumnoPayments(userData.token),
+  });
+
+  React.useEffect(() => {
+    if (userData.token) {
+      alumnoProfileMutation.mutate();
+      alumnoPaymentsMutation.mutate();
+    }
+  }, [userData.token]);
 
   if (isLoading) {
     return (
@@ -99,24 +133,57 @@ export default function PerfilScreen() {
             <Text variant="body" style={styles.value}>{user.tipoUsuario}</Text>
           </Card>
           
-          {alumno && (
+          {/* Card de Medio de Pago y Cuenta Corriente */}
+          {alumnoProfileMutation.isPending ? (
             <Card variant="elevated" style={styles.alumnoCard}>
-              <Text variant="h3" color="primary" style={styles.sectionTitle}>
-                Datos de Alumno
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text variant="body" style={{ marginTop: 8 }}>Cargando datos de alumno...</Text>
+            </Card>
+          ) : alumnoProfileMutation.data ? (
+            <Card variant="elevated" style={styles.alumnoCard}>
+              <Text variant="h3" color="primary" style={styles.sectionTitle}>Medio de Pago</Text>
+              <Text variant="label" color="secondary">N° de tarjeta:</Text>
+              <Text variant="body" style={styles.value}>
+                {alumnoProfileMutation.data.medioPago.nroTarjeta.replace(/.(?=.{4})/g, '*')}
               </Text>
-              <Text variant="label" color="secondary">DNI:</Text>
-              <Text variant="body" style={styles.value}>{alumno.medioPago.dni}</Text>
-              
+              <Text variant="label" color="secondary" style={styles.label}>DNI:</Text>
+              <Text variant="body" style={styles.value}>{alumnoProfileMutation.data.medioPago.dni}</Text>
               <Text variant="label" color="secondary" style={styles.label}>N° de trámite:</Text>
-              <Text variant="body" style={styles.value}>{alumno.medioPago.nroTramite}</Text>
-              
-              <Text variant="label" color="secondary" style={styles.label}>Tarjeta:</Text>
-              <Text variant="body" style={styles.value}>{alumno.medioPago.nroTarjeta}</Text>
-              
+              <Text variant="body" style={styles.value}>{alumnoProfileMutation.data.medioPago.nroTramite}</Text>
               <Text variant="label" color="secondary" style={styles.label}>Cuenta corriente:</Text>
-              <Text variant="body" style={styles.value}>${alumno.cuentaCorriente}</Text>
+              <Text variant="body" style={styles.value}>${alumnoProfileMutation.data.cuentaCorriente}</Text>
+            </Card>
+          ) : null}
+          {alumnoProfileMutation.isError && (
+            <Card variant="elevated" style={styles.alumnoCard}>
+              <Text variant="body" color="error">Error al cargar datos de alumno</Text>
             </Card>
           )}
+
+          {/* Card de Pagos */}
+          {alumnoPaymentsMutation.isPending ? (
+            <Card variant="elevated" style={styles.alumnoCard}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text variant="body" style={{ marginTop: 8 }}>Cargando pagos...</Text>
+            </Card>
+          ) : alumnoPaymentsMutation.data && alumnoPaymentsMutation.data.length > 0 ? (
+            <Card variant="elevated" style={styles.alumnoCard}>
+              <Text variant="h3" color="primary" style={styles.sectionTitle}>Pagos Realizados</Text>
+              {alumnoPaymentsMutation.data.map((pago: any) => (
+                <View key={pago.idPago} style={{ marginBottom: 12, borderBottomWidth: 1, borderBottomColor: '#eee', paddingBottom: 8 }}>
+                  <Text variant="body" style={styles.value}>{pago.descripcion}</Text>
+                  <Text variant="label" color="secondary">Fecha: <Text variant="body">{new Date(pago.fecha).toLocaleDateString()}</Text></Text>
+                  <Text variant="label" color="secondary">Monto: <Text variant="body">${pago.monto}</Text></Text>
+                  <Text variant="label" color="secondary">Tipo: <Text variant="body">{pago.tipo}</Text></Text>
+                  <Text variant="label" color="secondary">Medio de pago: <Text variant="body">{pago.medioPago}</Text></Text>
+                </View>
+              ))}
+            </Card>
+          ) : alumnoPaymentsMutation.isError ? (
+            <Card variant="elevated" style={styles.alumnoCard}>
+              <Text variant="body" color="error">Error al cargar pagos</Text>
+            </Card>
+          ) : null}
 
           {!alumno && user.tipoUsuario === 'Usuario' && user.alias !== 'invitado' ? (
             <Pressable style={styles.btnAlumno} onPress={() => {navigation.navigate('becomeStudent' as never),setCameraData({actualIdSide: "front", frontURI: "", backURI: "" }) }}>
