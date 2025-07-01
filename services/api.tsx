@@ -74,6 +74,7 @@ export const apiFetch = async (
     },
   });
 
+
   // Manejar errores de autorización
   if (!response.ok) {
 
@@ -83,6 +84,7 @@ export const apiFetch = async (
       message: errorData.message || `HTTP ${response.status}`,
       data: errorData
     };
+    console.log("POST FAIL", error);
 
 
     // Si es error de autorización y requiere auth, mostrar modal
@@ -90,12 +92,18 @@ export const apiFetch = async (
       throw new Error('Sesión expirada');
     }
 
-    
-    // Para otros errores, lanzar el error original
     throw error;
   }
   
-  return response.json();
+  // Si la respuesta es 204 (No Content) o el body está vacío, devolver null
+  if (response.status === 204) {
+    return null;
+  }
+  const text = await response.text();
+  if (!text) {
+    return null;
+  }
+  return JSON.parse(text);
 };
 
 // Funciones específicas para diferentes tipos de peticiones

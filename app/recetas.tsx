@@ -347,6 +347,15 @@ export default function RecetasScreen({ navigation }: { navigation: any }) {
           modal.setOpenModal(false);
           try {
             await deleteRecipe(String(item.id), userData.token);
+            modal.setType('dialog');
+            modal.setDialogData({
+              title: 'Receta eliminada',
+              subTitle: 'Se ha eliminado la receta.',
+              icon: 'exclamation-triangle',
+              onButtonPress: () => modal.setOpenModal(false),
+            });
+            modal.setOpenModal(true);
+            fetchRecetas();
           } catch (e) {
             modal.setType('dialog');
             modal.setDialogData({
