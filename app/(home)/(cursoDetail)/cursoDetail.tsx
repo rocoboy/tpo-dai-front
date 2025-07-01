@@ -1,11 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable, SafeAreaView, Image } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
-import { getCursoDetail, inscribirACurso } from '@/services/curso';
+import { useAppContext } from '@/context/Context';
 import { CursoDetail } from '@/models/curso';
+import { getCursoDetail, inscribirACurso } from '@/services/curso';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useAppContext } from '@/context/Context';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import React from 'react';
+import { ActivityIndicator, Image, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 const MOCK_IMAGE = require('@/assets/images/bigLogo.png');
 
@@ -23,11 +23,11 @@ export default function CursoDetailScreen() {
     React.useEffect(() => {
         if (!idCurso) return;
         setLoading(true);
-        getCursoDetail(idCurso)
+        getCursoDetail(idCurso, userData.token)
             .then(setCurso)
             .catch(() => setError('No se pudo cargar el curso'))
             .finally(() => setLoading(false));
-    }, [idCurso]);
+    }, [idCurso, userData.token]);
 
     // Handler para inscribirse
     function handleInscribirse() {

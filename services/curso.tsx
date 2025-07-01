@@ -10,8 +10,18 @@ export async function getCursos(): Promise<Curso[]> {
   return response.json();
 }
 
-export async function getCursoDetail(id: string): Promise<CursoDetail> {
-  const response = await fetch(`${env.API_URL}/courses/${id}`);
+export async function getCursoDetail(id: string, token?: string): Promise<CursoDetail> {
+  const headers: any = {
+    'Content-Type': 'application/json',
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  const response = await fetch(`${env.API_URL}/courses/${id}`, {
+    headers,
+  });
   if (!response.ok) {
     throw new Error('Error al obtener el detalle del curso');
   }
