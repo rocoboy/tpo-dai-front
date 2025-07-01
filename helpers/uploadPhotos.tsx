@@ -36,7 +36,38 @@ export const handleUploadPhoto = async (frontURI: string, backURI: string, id: n
 
         return {pathBack: responseBack?.fullPath, pathFront: responsefront?.fullPath};
     } catch (error: any) {
-        throw Error(error);
+        throw Error(error?.message || String(error));
+    }
+};
 
+export const handleUploadStepMedia = async (uri: string, idReceta: string | number, nroPaso: number, fileName: string) => {
+    if (!uri) throw Error("No hay archivo para subir");
+    try {
+        const fileExtension = uri.substring(uri.lastIndexOf(".") + 1).toLowerCase();
+        const base64Data = await FileSystem.readAsStringAsync(uri, {
+            encoding: FileSystem.EncodingType.Base64,
+        });
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        const fileContent = bytes.buffer;
+        // Detectar contentType
+        let contentType = '';
+        if (["jpg","jpeg","png","webp","gif"].includes(fileExtension)) {
+            contentType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
+        } else if (["mp4","mov","avi","webm","mkv"].includes(fileExtension)) {
+            contentType = `video/${fileExtension}`;
+        } else {
+            contentType = 'application/octet-stream';
+        }
+        // Path: recipes/{idReceta}/{nroPaso}/{fileName}
+        const path = `${idReceta}/${nroPaso}/${fileName}`;
+        // Usar bucket 'recipes'
+        const response = await uploadFile(fileContent, path, undefined, fileExtension, contentType, 'recipes');
+        return response?.fullPath;
+    } catch (error: any) {
+        throw Error(error?.message || String(error));
     }
 };

@@ -1,4 +1,3 @@
-
 import { Calificacion, Receta } from '@/models/receta';
 import { apiDelete, apiGet, apiPost } from './api';
 
@@ -84,6 +83,9 @@ export async function getIngredientes(context?: { userData: any; modal: any }) {
 }
 
 export async function createRecipe(recipeData: any, token: string, context?: { userData: any; modal: any }) {
+  if (!context) context = { userData: { token }, modal: undefined };
+  if (!context.userData) context.userData = { token };
+  else context.userData.token = token;
   return apiPost('/recipes', recipeData, true, context);
 }
 

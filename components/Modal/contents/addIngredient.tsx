@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, FlatList, Keyboard } from 'react-native';
-import { ThemedText } from '@/components/ThemedText';
-import InputText from '@/components/InputText';
 import CustomButton from '@/components/Button';
+import InputText from '@/components/InputText';
+import { ThemedText } from '@/components/ThemedText';
 import theme from '@/constants/types';
-import { getAllIngredientes, getAllUnidades } from '@/services/receta';
-import { Ingrediente, Unidad, IngredienteUtilizado } from '@/models/recipe';
 import { useAppContext } from '@/context/Context';
+import { Ingrediente, Unidad } from '@/models/recipe';
+import { getAllIngredientes, getAllUnidades } from '@/services/receta';
+import React, { useEffect, useRef, useState } from 'react';
+import { FlatList, Keyboard, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 interface AddIngredientProps {
   onSubmit: (ingredient: any) => void;
@@ -132,7 +132,7 @@ const AddIngredientContent: React.FC<AddIngredientProps> = ({ onSubmit, onCancel
             <ThemedText>Unidad</ThemedText>
             <TouchableOpacity style={styles.dropdownBox} onPress={() => setUnidadDropdownOpen(v => !v)}>
               <Text style={{ color: unidad ? '#222' : '#888' }}>
-                {unidades.find(u => u.idUnidad === unidad)?.descripcion || 'Seleccionar...'}
+                {unidades.find(u => u.idUnidad === unidad)?.descripcion || '...'}
               </Text>
             </TouchableOpacity>
             {unidadDropdownOpen && (

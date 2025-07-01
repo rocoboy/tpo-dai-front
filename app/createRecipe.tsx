@@ -133,6 +133,17 @@ const CreateRecipeScreen = () => {
 
   const handlePublicar = () => {
     requireAuth(() => {
+      if (!userData.token) {
+        modal.setType('dialog');
+        modal.setDialogData({
+          title: 'Error',
+          subTitle: 'Debes iniciar sesión para crear una receta.',
+          icon: 'exclamation-triangle',
+          onButtonPress: () => modal.setOpenModal(false),
+        });
+        modal.setOpenModal(true);
+        return;
+      }
       if (!recipeDraft.nombreReceta || !recipeDraft.descripcionReceta || !recipeDraft.porciones || recipeDraft.utilizados.length === 0 || recipeDraft.pasos.length === 0) {
         modal.setType('dialog');
         modal.setDialogData({

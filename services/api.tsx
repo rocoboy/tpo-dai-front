@@ -54,6 +54,17 @@ export const apiFetch = async (
     ? createAuthHeaders(context.userData.token)
     : { 'Content-Type': 'application/json' };
   
+  // LOG para debug
+  if (options.method === 'POST') {
+    console.log('API POST:', {
+      url: fullUrl,
+      headers: { ...headers, ...options.headers },
+      body: options.body,
+      token: context?.userData?.token,
+      requireAuth
+    });
+  }
+  
   // Realizar la petición
   const response = await fetch(fullUrl, {
     ...options,
@@ -88,11 +99,13 @@ export const apiFetch = async (
 export const apiGet = (url: string, requireAuth: boolean = true, context?: { userData: any; modal: any }) => 
   apiFetch(url, { method: 'GET' }, requireAuth, context);
 
-export const apiPost = (url: string, data: any, requireAuth: boolean = true, context?: { userData: any; modal: any }) => 
-  apiFetch(url, { 
+export const apiPost = (url: string, data: any, requireAuth: boolean = true, context?: { userData: any; modal: any }) => {
+  console.log('apiPost call', { url, data, requireAuth, token: context?.userData?.token });
+  return apiFetch(url, { 
     method: 'POST', 
     body: JSON.stringify(data) 
   }, requireAuth, context);
+};
 
 export const apiPut = (url: string, data: any, requireAuth: boolean = true, context?: { userData: any; modal: any }) => 
   apiFetch(url, { 

@@ -1,10 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { ThemedText } from '@/components/ThemedText';
 import CustomButton from '@/components/Button';
+import { ThemedText } from '@/components/ThemedText';
 import theme from '@/constants/types';
 import { useAppContext } from '@/context/Context';
+import { handleUploadStepMedia } from '@/helpers/uploadPhotos';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 interface Paso {
   descripcion: string;
@@ -30,30 +32,74 @@ const AddStepScreen: React.FC = () => {
   const [charCount, setCharCount] = useState(initialDescripcion.length);
   const [isEditing, setIsEditing] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [media, setMedia] = useState<{ uri: string; type: 'image' | 'video'; name: string; uploading?: boolean; url?: string }[]>([]);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     setCharCount(initialDescripcion.length);
   }, [initialDescripcion]);
 
-  const handleAddPaso = () => {
+  const pickMedia = async (mediaType: 'image' | 'video') => {
+    let result;
+    if (mediaType === 'image') {
+      result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, quality: 0.8 });
+    } else {
+      result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Videos });
+    }
+    if (!result.canceled && result.assets && result.assets.length > 0) {
+      const asset = result.assets[0];
+      setMedia((prev) => [...prev, { uri: asset.uri, type: mediaType, name: asset.fileName || `media_${Date.now()}.${mediaType === 'image' ? 'jpg' : 'mp4'}` }]);
+    }
+  };
+
+  const removeMedia = (idx: number) => {
+    setMedia((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleAddPaso = async () => {
     if (descripcion.trim().length === 0) return;
+    setUploading(true);
+    let uploadedMedia = [];
+    try {
+      for (let i = 0; i < media.length; i++) {
+        const m = media[i];
+        // idReceta: si ya existe en draft, usarlo, sino 'draft'
+        const idReceta = recipeDraft.idTipo || 'draft';
+        const nroPaso = isEditing && editIndex !== null ? editIndex + 1 : recipeDraft.pasos.length + 1;
+        const fileName = m.name;
+        // Subir archivo
+        const fullPath = await handleUploadStepMedia(m.uri, idReceta, nroPaso, fileName);
+        uploadedMedia.push({
+          url: fullPath,
+          extension: fileName.split('.').pop(),
+          tipo_contenido: m.type === 'image' ? 'foto' : 'video',
+        });
+      }
+    } catch (e) {
+      setUploading(false);
+      alert('Error subiendo archivos: ' + e);
+      return;
+    }
+    setUploading(false);
     if (isEditing && editIndex !== null) {
       setRecipeDraft(d => ({
         ...d,
-        pasos: d.pasos.map((p, i) => i === editIndex ? { ...p, texto: descripcion } : p)
+        pasos: d.pasos.map((p, i) => i === editIndex ? { ...p, texto: descripcion, multimedia: uploadedMedia } : p)
       }));
       setDescripcion('');
       setIsEditing(false);
       setEditIndex(null);
+      setMedia([]);
     } else {
       setRecipeDraft(d => ({
         ...d,
         pasos: [
           ...d.pasos,
-          { nroPaso: d.pasos.length + 1, texto: descripcion, multimedia: [] }
+          { nroPaso: d.pasos.length + 1, texto: descripcion, multimedia: uploadedMedia }
         ]
       }));
       setDescripcion('');
+      setMedia([]);
     }
   };
 
@@ -116,10 +162,28 @@ const AddStepScreen: React.FC = () => {
         </View>
         <ThemedText style={styles.addMediaLabel}>Agregar Imagenes / Video</ThemedText>
         <View style={styles.mediaRow}>
-          <View style={styles.mediaBox}><Text style={styles.mediaIcon}>🖼️</Text></View>
-          <View style={styles.mediaBox}><Text style={styles.mediaIcon}>🎥</Text></View>
+          <TouchableOpacity style={styles.mediaBox} onPress={() => pickMedia('image')}><Text style={styles.mediaIcon}>🖼️</Text></TouchableOpacity>
+          <TouchableOpacity style={styles.mediaBox} onPress={() => pickMedia('video')}><Text style={styles.mediaIcon}>🎥</Text></TouchableOpacity>
         </View>
-        
+        {media.length > 0 && (
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
+            {media.map((m, idx) => (
+              <View key={idx} style={{ position: 'relative', width: 80, height: 80, marginRight: 8 }}>
+                {m.type === 'image' ? (
+                  <Image source={{ uri: m.uri }} style={{ width: 80, height: 80, borderRadius: 8 }} />
+                ) : (
+                  <View style={{ width: 80, height: 80, borderRadius: 8, backgroundColor: '#222', justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ color: '#fff', fontSize: 32 }}>🎥</Text>
+                  </View>
+                )}
+                <TouchableOpacity onPress={() => removeMedia(idx)} style={{ position: 'absolute', top: -8, right: -8, backgroundColor: '#fff', borderRadius: 12, padding: 2, elevation: 2 }}>
+                  <Text style={{ color: '#f00', fontWeight: 'bold', fontSize: 16 }}>×</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </View>
+        )}
+        {uploading && <ActivityIndicator size="small" color={theme.colors.primary} style={{ marginBottom: 10 }} />}
         <View style={styles.pasosList}>
           {recipeDraft.pasos.map((p, i) => (
             <View key={i} style={styles.pasoItem}>
