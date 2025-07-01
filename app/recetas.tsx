@@ -9,10 +9,11 @@ import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 const FILTERS = [
-  { key: 'nombre', label: 'Receta' },
+  { key: 'nombre', label: 'Nombre' },
   { key: 'tipo', label: 'Tipo' },
-  { key: 'contieneIngrediente', label: 'Ingredientes' },
-  { key: 'sinIngrediente', label: 'Sin Ingrediente' },
+  { key: 'contieneIngrediente', label: 'Con ingrediente' },
+  { key: 'sinIngrediente', label: 'Sin ingrediente' },
+  { key: 'usuario', label: 'Usuario' },
 ];
 
 const ORDER_OPTIONS = [
@@ -228,6 +229,8 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
       switch (activeFilter) {
         case 'nombre':
           return 'Buscar por nombre de receta...';
+        case 'usuario':
+          return 'Buscar por usuario...';
         case 'contieneIngrediente':
           return 'Buscar ingrediente que contenga...';
         case 'sinIngrediente':
@@ -277,7 +280,8 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
               <Text style={[styles.filterChipText, activeFilter === f.key && styles.filterChipTextActive]} numberOfLines={1} ellipsizeMode="tail">{f.label}</Text>
             </TouchableOpacity>
           )}
-          contentContainerStyle={{ gap: 8 }}
+          contentContainerStyle={{ gap: 8, paddingRight: 16 }}
+          style={{ flexGrow: 0 }}
         />
         {Object.keys(filters).length > 0 && (
           <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters}>
@@ -470,16 +474,19 @@ const styles = StyleSheet.create({
     marginBottom: 8, 
     flexWrap: 'nowrap' 
   },
-  filterChip: { 
-    backgroundColor: '#eee', 
-    borderRadius: 16, 
-    paddingHorizontal: 12, 
-    paddingVertical: 6, 
-    marginRight: 0, 
-    maxWidth: 90 
+  filterChip: {
+    backgroundColor: '#eee',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginRight: 0,
+    minWidth: 60,
+    maxWidth: 180,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   filterChipActive: { backgroundColor: '#00bfa5' },
-  filterChipText: { color: '#222', fontSize: 14 },
+  filterChipText: { color: '#222', fontSize: 15, flexShrink: 1 },
   filterChipTextActive: { color: '#fff', fontWeight: 'bold' },
   body: { flex: 1, paddingHorizontal: 16, paddingTop: 4 },
   ordenarRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
