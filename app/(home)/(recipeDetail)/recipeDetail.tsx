@@ -421,7 +421,10 @@ export default function RecipeDetailScreen({ navigation }: { navigation: any }) 
   return (
     <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 30 }}>
       <View style={styles.headerImgContainer}>
-        <Image source={require('@/assets/images/bigLogo.png')} style={styles.headerImg} />
+        <Image
+          source={receta.fotos && receta.fotos.length > 0 ? { uri: receta.fotos[0].url } : require('@/assets/images/bigLogo.png')}
+          style={styles.headerImg}
+        />
         <Pressable style={styles.backBtn} onPress={() => navigation.navigate("home" as never)}>
           <FontAwesome name="chevron-left" size={32} color={theme.colors.secondary} />
         </Pressable>

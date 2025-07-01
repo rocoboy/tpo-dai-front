@@ -122,7 +122,7 @@ export default function HomeScreen({ navigation }: { navigation: any }) {
                     <View style={{ flex: 1 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 2 }}>
                         <Image
-                          source={require('@/assets/images/bigLogo.png')}
+                          source={receta.imagen ? { uri: receta.imagen } : require('@/assets/images/bigLogo.png')}
                           style={styles.recetaImgSmall}
                         />
                         <View style={{ flexDirection: 'column', alignItems: 'flex-start', marginVertical: 2 }}>
@@ -145,7 +145,7 @@ export default function HomeScreen({ navigation }: { navigation: any }) {
             )}
             {recetas[2] && (
               <View style={styles.recetaCardLarge}>
-                <Image source={require('@/assets/images/bigLogo.png')} style={styles.recetaImgLarge} />
+                <Image source={recetas[2].imagen ? { uri: recetas[2].imagen } : require('@/assets/images/bigLogo.png')} style={styles.recetaImgLarge} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.recetaTitleLarge}>{recetas[2].nombre}</Text>
                   <Text style={styles.recetaAutorLarge}>👤 {recetas[2].autor}</Text>

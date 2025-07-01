@@ -17,6 +17,7 @@ const FILTERS = [
 ];
 
 const ORDER_OPTIONS = [
+  { key: 'nombre', label: 'Nombre (A-Z)' },
   { key: 'fecha', label: 'Más Recientes' },
   { key: 'fechaAsc', label: 'Más Antiguas' },
   { key: 'usuarioAsc', label: 'Usuario A-Z' },
@@ -39,7 +40,7 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
   const [dropdownValue, setDropdownValue] = React.useState('todas');
   const [filters, setFilters] = React.useState<{ [k: string]: string }>({});
   const [activeFilter, setActiveFilter] = React.useState('nombre');
-  const [orderBy, setOrderBy] = React.useState('fecha'); // Por defecto más recientes
+  const [orderBy, setOrderBy] = React.useState('nombre'); // Por defecto por nombre
   const [search, setSearch] = React.useState('');
   
   // Estados para datos de filtros
@@ -126,6 +127,8 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
 
   const sortRecetas = (recetas: Receta[]) => {
     switch (orderBy) {
+      case 'nombre':
+        return [...recetas].sort((a, b) => a.nombre.localeCompare(b.nombre));
       case 'usuarioAsc':
         return [...recetas].sort((a, b) => a.autor.localeCompare(b.autor));
       case 'usuarioDesc':

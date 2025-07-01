@@ -46,7 +46,7 @@ export default function WelcomeScreen() {
             {recetas.slice(0, 3).map((receta, index) => (
               <View key={receta.id} style={styles.recipeCard}>
                 <Image 
-                  source={require('@/assets/images/bigLogo.png')} 
+                  source={receta.imagen ? { uri: receta.imagen } : require('@/assets/images/bigLogo.png')} 
                   style={styles.recipeImage}
                   resizeMode="cover"
                 />
