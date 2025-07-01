@@ -39,6 +39,7 @@ export default function RecipeDetailScreen({ navigation }: { navigation: any }) 
     queryFn: () => getRecipeComments(String(recetaId), userData.token, { userData, modal }),
     refetchOnWindowFocus: false,
     refetchOnMount: false,
+    enabled: !!userData?.token,
   });
   const crearComentarioMutation = useMutation({
     mutationFn: async ({ valor, comentario }: { valor: number; comentario: string }) =>
@@ -226,6 +227,18 @@ export default function RecipeDetailScreen({ navigation }: { navigation: any }) 
 
   // Handler para recalcular ingredientes
   const handleRecalcularIngrediente = (utilizado: Utilizado) => {
+    if (userData.alias === 'invitado') {
+      modal.setType('dialog');
+      modal.setDialogData({
+        title: 'Acceso Restringido',
+        subTitle: 'Necesitas iniciar sesión para escalar recetas.',
+        icon: 'exclamation-triangle',
+        onButtonPress: () => modal.setOpenModal(false),
+      });
+      modal.setOpenModal(true);
+      return;
+    }
+    
     modal.setType("recalcularIngredientes");
     modal.setModalProps({
       porciones: porcionesEscaladas,
@@ -249,7 +262,18 @@ export default function RecipeDetailScreen({ navigation }: { navigation: any }) 
   };
 
   const handleEscalarPorciones = (targetPortions: number) => {
-    scaleByPortionsMutation.mutate(targetPortions);
+    if (userData.alias === 'invitado') {
+      modal.setType('dialog');
+      modal.setDialogData({
+        title: 'Acceso Restringido',
+        subTitle: 'Necesitas iniciar sesión para escalar recetas.',
+        icon: 'exclamation-triangle',
+        onButtonPress: () => modal.setOpenModal(false),
+      });
+      modal.setOpenModal(true);
+    } else {
+      scaleByPortionsMutation.mutate(targetPortions);
+    }
   };
 
   const handleOpenEscalarModal = () => {
