@@ -1,9 +1,15 @@
-import { buildSupabaseUrl, env } from '@/enviroment';
+import { env } from '@/enviroment';
 import { uploadFile } from '@/services/bucket';
 import { createClient } from '@supabase/supabase-js';
 import * as FileSystem from 'expo-file-system';
 
 const supabase = createClient(env.SUPABASE_API_URL, env.SUPABASE_BUCKET_API_KEY);
+
+// Helper seguro para armar la URL pública de Supabase sin duplicar el bucket
+const SUPABASE_PUBLIC_BASE = 'https://ybdgsuobogchpjaczzcc.supabase.co/storage/v1/object/public/';
+export function getSupabasePublicUrl(path: string) {
+  return SUPABASE_PUBLIC_BASE + path;
+}
 
 export const handleUploadPhoto = async (frontURI: string, backURI: string, id: number) => {
     if (frontURI.length == 0 || backURI.length == 0) {
@@ -44,40 +50,45 @@ export const handleUploadPhoto = async (frontURI: string, backURI: string, id: n
     }
 };
 
-export const handleUploadStepMedia = async (uri: string, folderId: string, nroPaso: number, fileName: string, upsert: boolean = false) => {
-    if (!uri) throw Error("No hay archivo para subir");
-    try {
-        const fileExtension = uri.substring(uri.lastIndexOf(".") + 1).toLowerCase();
-        const base64Data = await FileSystem.readAsStringAsync(uri, {
-            encoding: FileSystem.EncodingType.Base64,
-        });
-        const binaryString = atob(base64Data);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-        }
-        const fileContent = bytes.buffer;
-        // Detectar contentType
-        let contentType = '';
-        if (["jpg","jpeg","png","webp","gif"].includes(fileExtension)) {
-            contentType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
-        } else if (["mp4","mov","avi","webm","mkv"].includes(fileExtension)) {
-            contentType = `video/${fileExtension}`;
-        } else {
-            contentType = 'application/octet-stream';
-        }
-        // Path: recipes/{folderId}/{nroPaso}/{fileName}
-        const path = `${folderId}/${nroPaso}/${fileName}`;
-        // Usar bucket 'recipes'
-        const response = await uploadFile(fileContent, path, undefined, fileExtension, contentType, 'recipes', upsert);
-        if (response?.fullPath) {
-          // Construir URL completa de Supabase usando helper
-          return buildSupabaseUrl('recipes', response.fullPath);
-        }
-        return response?.fullPath;
-    } catch (error: any) {
-        throw Error(error?.message || String(error));
+export const handleUploadStepMedia = async (uri: string, folderId: string, nroPaso: number, fileName: string, upsert: boolean = false, tipo_contenido: 'foto' | 'video') => {
+  if (!uri) throw Error("No hay archivo para subir");
+  try {
+    const fileExtension = uri.substring(uri.lastIndexOf(".") + 1).toLowerCase();
+    const base64Data = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
     }
+    const fileContent = bytes.buffer;
+    // Detectar contentType
+    let contentType = '';
+    if (["jpg","jpeg","png","webp","gif"].includes(fileExtension)) {
+      contentType = `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`;
+    } else if (["mp4","mov","avi","webm","mkv"].includes(fileExtension)) {
+      contentType = `video/${fileExtension}`;
+    } else {
+      contentType = 'application/octet-stream';
+    }
+    // Path: recipes/{folderId}/{nroPaso}/{fileName}
+    const path = `${folderId}/${nroPaso}/${fileName}`;
+    // Usar bucket 'recipes'
+    const response = await uploadFile(fileContent, path, undefined, fileExtension, contentType, 'recipes', upsert);
+    if (response?.fullPath) {
+      // Devuelvo objeto DTO + url pública para la UI
+      return {
+        path: response.fullPath,
+        url: getSupabasePublicUrl(response.fullPath),
+        extension: contentType,
+        tipo_contenido
+      };
+    }
+    return undefined;
+  } catch (error: any) {
+    throw Error(error?.message || String(error));
+  }
 };
 
 // Función para generar ID único aleatorio

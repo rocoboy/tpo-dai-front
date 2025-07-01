@@ -1,12 +1,15 @@
 import Header from '@/components/ui/Header';
 import { useAppContext } from '@/context/Context';
 import { useSavedRecipes } from '@/hooks/useSavedRecipes';
-import { IngredienteBase, Receta, TipoReceta } from '@/models/receta';
+import { Foto, IngredienteBase, Receta as RecetaBase, TipoReceta } from '@/models/receta';
 import { deleteRecipe, getAllIngredientes, getAllRecipeTypes, getFavorites, getFilteredRecipes, getMyRecipes } from '@/services/receta';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import React from 'react';
 import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+// Extiendo el tipo Receta para permitir fotos opcional
+type Receta = RecetaBase & { fotos?: Foto[] };
 
 const FILTERS = [
   { key: 'nombre', label: 'Nombre' },
@@ -374,6 +377,7 @@ export default function RecetasScreen({ navigation }: { navigation: any }) {
       modal.setOpenModal(true);
     };
 
+
     return (
       <View style={[styles.recetaCard, { position: 'relative' }]}>
         {isMyRecipe && item.estado && (
@@ -388,7 +392,7 @@ export default function RecetasScreen({ navigation }: { navigation: any }) {
         <TouchableOpacity
           style={{ flexDirection: 'row', flex: 1 }}
           onPress={() => {
-            if (isPendiente) return; // No permitir acceder al detalle si está pendiente
+            if (isPendiente) return;
             if (isMyRecipe) navigation.navigate('recipeDetail', { recetaId: item.id });
             else {
               const recipeId = isSavedRecipe ? getOriginalRecipeId(item.id.toString()) : item.id;
@@ -397,7 +401,16 @@ export default function RecetasScreen({ navigation }: { navigation: any }) {
           }}
           activeOpacity={isPendiente ? 1 : 0.7}
         >
-          <Image source={item.imagen ? { uri: item.imagen } : require('@/assets/images/bigLogo.png')} style={styles.recetaImg} />
+          <Image
+            source={
+              item.fotos?.[0]?.url
+                ? { uri: item.fotos[0].url }
+                : item.imagen
+                  ? { uri: item.imagen }
+                  : require('@/assets/images/bigLogo.png')
+            }
+            style={styles.recetaImg}
+          />
           <View style={{ flex: 1 }}>
             <Text style={styles.recetaNombre}>{String(item.nombre ?? '')}</Text>
             <Text style={styles.recetaAutor}>👤 {String(item.autor ?? '')}</Text>
@@ -432,7 +445,7 @@ export default function RecetasScreen({ navigation }: { navigation: any }) {
       });
       modal.setOpenModal(true);
     } else {
-      navigation.navigate('createRecipe');
+      navigation.navigate('createRecipe', { reset: true });
     }
   };
 

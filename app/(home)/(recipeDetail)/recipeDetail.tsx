@@ -427,7 +427,11 @@ export default function RecipeDetailScreen({ navigation }: { navigation: any }) 
     <ScrollView style={styles.body} contentContainerStyle={{ paddingBottom: 30 }}>
       <View style={styles.headerImgContainer}>
         <Image
-          source={receta.fotos && receta.fotos.length > 0 ? { uri: receta.fotos[0].url } : require('@/assets/images/bigLogo.png')}
+          source={
+            receta.fotos && receta.fotos.length > 0
+              ? { uri: receta.fotos[0].url }
+              : require('@/assets/images/bigLogo.png')
+          }
           style={styles.headerImg}
         />
         <Pressable style={styles.backBtn} onPress={() => navigation.navigate("home" as never)}>
@@ -519,6 +523,8 @@ export default function RecipeDetailScreen({ navigation }: { navigation: any }) 
                   const ext = (media.extension || '').toLowerCase();
                   const url = media.urlContenido || media.url;
                   if (typeof url !== 'string') return null;
+                  const isImage = ext.startsWith('image/') || ["jpg","jpeg","png","webp","gif"].includes(ext);
+                  const isVideo = ext.startsWith('video/') || ["mp4","mov","avi","webm","mkv"].includes(ext);
                   // YouTube
                   if (url.includes('youtube.com') || url.includes('youtu.be')) {
                     let videoId = '';
@@ -536,13 +542,13 @@ export default function RecipeDetailScreen({ navigation }: { navigation: any }) 
                         />
                       </View>
                     );
-                  } else if (["jpg","jpeg","png","webp","gif"].includes(ext)) {
+                  } else if (isImage) {
                     return (
                       <View key={mIdx} style={{ backgroundColor: '#fff', borderRadius: 10, padding: 6, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 2, elevation: 1, alignItems: 'center', width: '100%' }}>
                         <Image source={{ uri: url }} style={{ width: '100%', aspectRatio: VIDEO_ASPECT_RATIO, borderRadius: 8, resizeMode: 'cover' }} />
                       </View>
                     );
-                  } else if (["mp4","mov","avi","webm","mkv"].includes(ext)) {
+                  } else if (isVideo) {
                     return (
                       <View key={mIdx} style={{ backgroundColor: '#fff', borderRadius: 10, padding: 0, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 2, elevation: 1, alignItems: 'center', width: '100%' }}>
                         <Video

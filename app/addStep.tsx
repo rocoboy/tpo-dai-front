@@ -2,7 +2,7 @@ import CustomButton from '@/components/Button';
 import { ThemedText } from '@/components/ThemedText';
 import theme from '@/constants/types';
 import { ensureRecipeFolderId, useAppContext } from '@/context/Context';
-import { handleUploadStepMedia } from '@/helpers/uploadPhotos';
+import { getSupabasePublicUrl, handleUploadStepMedia } from '@/helpers/uploadPhotos';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useEffect, useState } from 'react';
@@ -32,7 +32,17 @@ const AddStepScreen: React.FC = () => {
   const [charCount, setCharCount] = useState(initialDescripcion.length);
   const [isEditing, setIsEditing] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
-  const [media, setMedia] = useState<{ uri: string; type: 'image' | 'video'; name: string; uploading?: boolean; url?: string }[]>([]);
+  const [media, setMedia] = useState<{
+    uri: string;
+    type: 'image' | 'video';
+    name: string;
+    uploading?: boolean;
+    url?: string;
+    path?: string;
+    extension?: string;
+    tipo_contenido?: 'foto' | 'video';
+    fullPath?: string;
+  }[]>([]);
 
   useEffect(() => {
     setCharCount(initialDescripcion.length);
@@ -52,7 +62,11 @@ const AddStepScreen: React.FC = () => {
         type: mediaType, 
         name: asset.fileName || `media_${Date.now()}.${mediaType === 'image' ? 'jpg' : 'mp4'}`,
         uploading: true,
-        url: undefined
+        url: undefined,
+        path: undefined,
+        extension: undefined,
+        tipo_contenido: undefined,
+        fullPath: undefined
       };
       
       // Agregar inmediatamente con estado de subida
@@ -68,15 +82,12 @@ const AddStepScreen: React.FC = () => {
         const nroPaso = isEditing && editIndex !== null ? editIndex + 1 : recipeDraft.pasos.length + 1;
         const fileName = newMedia.name;
         
-        console.log("ID FOLDER:", draftWithId.folderId);
-        console.log("NRO PASO:", nroPaso);
-        
-        const fullPath = await handleUploadStepMedia(asset.uri, draftWithId.folderId || 'temp', nroPaso, fileName, true);
-        
-        // Actualizar el estado con la URL subida
-        setMedia((prev) => prev.map((m, idx) => 
-          idx === prev.length - 1 
-            ? { ...m, uploading: false, url: fullPath }
+        const tipo_contenido = mediaType === 'image' ? 'foto' : 'video';
+        const multimediaObj = await handleUploadStepMedia(asset.uri, draftWithId.folderId || 'temp', nroPaso, fileName, true, tipo_contenido);
+        // Actualizar el estado con el objeto multimedia completo
+        setMedia((prev) => prev.map((m, idx) =>
+          idx === prev.length - 1
+            ? { ...m, uploading: false, ...multimediaObj, fullPath: multimediaObj?.path, path: 'https://ybdgsuobogchpjaczzcc.supabase.co/storage/v1/object/public/' + multimediaObj?.path  }
             : m
         ));
       } catch (error) {
@@ -97,11 +108,12 @@ const AddStepScreen: React.FC = () => {
     
     // Procesar archivos que ya están subidos
     const multimedia = media
-      .filter(m => m.url && !m.uploading)
+      .filter(m => m.url && !m.uploading && m.path && m.extension && m.tipo_contenido)
       .map(m => ({
-        url: m.url!,
-        extension: m.name.split('.').pop(),
-        tipo_contenido: m.type === 'image' ? 'foto' : 'video',
+        tipo_contenido: m.tipo_contenido,
+        path: m.path,
+        extension: m.extension,
+        fullPath: m.fullPath || m.path
       }));
     
     if (isEditing && editIndex !== null) {
@@ -131,11 +143,12 @@ const AddStepScreen: React.FC = () => {
     if (descripcion.trim().length > 0) {
       // Solo incluir archivos que ya están subidos
       const multimedia = media
-        .filter(m => m.url && !m.uploading)
+        .filter(m => m.url && !m.uploading && m.path && m.extension && m.tipo_contenido)
         .map(m => ({
-          url: m.url!,
-          extension: m.name.split('.').pop(),
-          tipo_contenido: m.type === 'image' ? 'foto' : 'video',
+          tipo_contenido: m.tipo_contenido,
+          path: m.path,
+          extension: m.extension,
+          fullPath: m.fullPath || m.path
         }));
       
       if (isEditing && editIndex !== null) {
@@ -160,11 +173,15 @@ const AddStepScreen: React.FC = () => {
     // Cargar archivos multimedia subidos existentes
     if (paso.multimedia && paso.multimedia.length > 0) {
       const existingMedia = paso.multimedia.map(m => ({
-        uri: m.url, // Usar la URL como URI para mostrar
+        uri: m.url || (m.path ? getSupabasePublicUrl(m.path) : undefined),
         type: m.tipo_contenido === 'foto' ? 'image' : 'video' as 'image' | 'video',
-        name: m.url.split('/').pop() || `media_${Date.now()}`,
+        name: (m.url || m.path || '').split('/').pop() || `media_${Date.now()}`,
         uploading: false,
-        url: m.url // Ya es una URL completa
+        url: m.url || (m.path ? getSupabasePublicUrl(m.path) : undefined),
+        path: m.path,
+        extension: m.extension,
+        tipo_contenido: m.tipo_contenido,
+        fullPath: m.fullPath || m.path
       }));
       setMedia(existingMedia);
     } else {

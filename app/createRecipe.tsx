@@ -5,8 +5,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import theme from '@/constants/types';
 import { useAppContext, UtilizadoReceta } from '@/context/Context';
-import { buildSupabaseUrl } from '@/enviroment';
-import { generateUniqueFolderId } from '@/helpers/uploadPhotos';
+import { generateUniqueFolderId, getSupabasePublicUrl } from '@/helpers/uploadPhotos';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { uploadFile } from '@/services/bucket';
 import { createRecipe, getAllRecipeTypes } from '@/services/receta';
@@ -18,9 +17,14 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { RootStackNavigationProp, RootStackParamList } from './navigationTypes';
 
+type CreateRecipeRouteParams = {
+  pasos?: { descripcion: string }[];
+  reset?: boolean;
+};
+
 const CreateRecipeScreen = () => {
   const navigation = useNavigation<RootStackNavigationProp>();
-  const route = useRoute<RouteProp<RootStackParamList, 'createRecipe'>>();
+  const route = useRoute<RouteProp<RootStackParamList, 'createRecipe'>>() as { params: CreateRecipeRouteParams };
   const { modal, userData, recipeDraft, setRecipeDraft, clearRecipeDraft } = useAppContext();
   const { requireAuth } = useRequireAuth();
   const queryClient = useQueryClient();
@@ -49,7 +53,7 @@ const CreateRecipeScreen = () => {
           console.log('Fotos subidas:', recipeDraft.fotos);
           recipeDraft.pasos.forEach((p, idx) => {
             if (p.multimedia && p.multimedia.length > 0) {
-              console.log(`Paso ${idx + 1} multimedia:`, p.multimedia.map(m => m.url));
+              console.log(`Paso ${idx + 1} multimedia:`, p.multimedia.map(m => m.path));
             }
           });
           clearRecipeDraft();
@@ -75,6 +79,30 @@ const CreateRecipeScreen = () => {
       setTiposReceta(tipos);
     });
   }, [userData.token]);
+
+  // Limpiar draft y generar folderId único solo si el parámetro reset es true
+  useEffect(() => {
+    if (route.params?.reset) {
+      const initDraft = async () => {
+        clearRecipeDraft();
+        const folderId = await generateUniqueFolderId();
+        setRecipeDraft({
+          nombreReceta: '',
+          descripcionReceta: '',
+          porciones: 0,
+          cantidadPersonas: 0,
+          idTipo: '',
+          utilizados: [],
+          pasos: [],
+          fotos: [],
+          folderId,
+        });
+        // Limpiar el parámetro reset para evitar reseteos posteriores
+        navigation.setParams({ reset: undefined });
+      };
+      initDraft();
+    }
+  }, [route.params?.reset]);
 
   const handleGoBack = () => {
     clearRecipeDraft();
@@ -206,7 +234,7 @@ const CreateRecipeScreen = () => {
       const path = `${draftWithId.folderId}/${fileName}`;
       const response = await uploadFile(fileContent, path, undefined, fileExtension, `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`, 'recipes', true);
       if (response?.fullPath) {
-        const fullUrl = buildSupabaseUrl('recipes', response.fullPath);
+        const fullUrl = getSupabasePublicUrl(response.fullPath);
         setRecipeDraft(d => ({
           ...d,
           fotos: [{ extension: fileExtension, path: fullUrl }],
