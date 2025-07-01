@@ -5,6 +5,8 @@ import { ThemedText } from '@/components/ThemedText';
 import { ThemedView } from '@/components/ThemedView';
 import theme from '@/constants/types';
 import { useAppContext, UtilizadoReceta } from '@/context/Context';
+import { buildSupabaseUrl } from '@/enviroment';
+import { generateUniqueFolderId } from '@/helpers/uploadPhotos';
 import { useRequireAuth } from '@/hooks/useRequireAuth';
 import { uploadFile } from '@/services/bucket';
 import { createRecipe, getAllRecipeTypes } from '@/services/receta';
@@ -13,7 +15,7 @@ import { RouteProp, useFocusEffect, useNavigation, useRoute } from '@react-navig
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import * as FileSystem from 'expo-file-system';
 import React, { useEffect, useState } from 'react';
-import { FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { RootStackNavigationProp, RootStackParamList } from './navigationTypes';
 
 const CreateRecipeScreen = () => {
@@ -29,7 +31,12 @@ const CreateRecipeScreen = () => {
 
   // Mutation para crear receta
   const createRecipeMutation = useMutation({
-    mutationFn: (newRecipe: any) => createRecipe(newRecipe, userData.token),
+    mutationFn: async (newRecipe: any) => {
+      // Crear la receta (las fotos ya están subidas)
+      const createdRecipe = await createRecipe(newRecipe, userData.token);
+      console.log('Receta creada:', createdRecipe);
+      return createdRecipe;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recipes'] });
       modal.setType('dialog');
@@ -39,7 +46,14 @@ const CreateRecipeScreen = () => {
         icon: 'check-circle',
         onButtonPress: () => {
           modal.setOpenModal(false);
-          navigation.goBack();
+          console.log('Fotos subidas:', recipeDraft.fotos);
+          recipeDraft.pasos.forEach((p, idx) => {
+            if (p.multimedia && p.multimedia.length > 0) {
+              console.log(`Paso ${idx + 1} multimedia:`, p.multimedia.map(m => m.url));
+            }
+          });
+          clearRecipeDraft();
+          navigation.navigate("home");
         },
       });
       modal.setOpenModal(true);
@@ -155,17 +169,33 @@ const CreateRecipeScreen = () => {
         modal.setOpenModal(true);
         return;
       }
-      const payload = { ...recipeDraft };
+
+      // Preparar payload sin fotos (se subirán después)
+      const payload = { 
+        ...recipeDraft,
+        fotos: recipeDraft.fotos || []
+      };
+      
+      console.log('Payload a enviar:', JSON.stringify(payload, null, 2));
+      
+      // Usar la mutation que maneja la creación y subida de fotos
       createRecipeMutation.mutate(payload);
-      clearRecipeDraft();
     });
   };
 
   const handlePhotoTaken = async (photoUri: string) => {
     setUploadingPhoto(true);
     try {
+      // Asegurar que siempre haya un folderId único en Supabase antes de subir la primera foto
+      let draftWithId = recipeDraft;
+      if (!draftWithId.folderId) {
+        const folderId = await generateUniqueFolderId();
+        draftWithId = { ...draftWithId, folderId };
+        setRecipeDraft(draftWithId);
+      }
       const fileExtension = photoUri.substring(photoUri.lastIndexOf('.') + 1) || 'jpg';
-      const fileName = `principal_${Date.now()}.${fileExtension}`;
+      const fileName = `principal.${fileExtension}`;
+      // Subir la foto principal con upsert: true
       const fileData = await FileSystem.readAsStringAsync(photoUri, { encoding: FileSystem.EncodingType.Base64 });
       const binaryString = atob(fileData);
       const bytes = new Uint8Array(binaryString.length);
@@ -173,15 +203,17 @@ const CreateRecipeScreen = () => {
         bytes[i] = binaryString.charCodeAt(i);
       }
       const fileContent = bytes.buffer;
-      const userId = userData.id;
-      const response = await uploadFile(fileContent, fileName, userId, fileExtension);
+      const path = `${draftWithId.folderId}/${fileName}`;
+      const response = await uploadFile(fileContent, path, undefined, fileExtension, `image/${fileExtension === 'jpg' ? 'jpeg' : fileExtension}`, 'recipes', true);
       if (response?.fullPath) {
+        const fullUrl = buildSupabaseUrl('recipes', response.fullPath);
         setRecipeDraft(d => ({
           ...d,
-          fotos: [{ extension: fileExtension, path: response.fullPath }],
+          fotos: [{ extension: fileExtension, path: fullUrl }],
         }));
       }
     } catch (e) {
+      console.error('Error subiendo foto principal:', e);
       modal.setType('dialog');
       modal.setDialogData({
         title: 'Error',
@@ -212,6 +244,12 @@ const CreateRecipeScreen = () => {
     </View>
   );
 
+  // Determinar si hay alguna foto o multimedia subiendo
+  const isAnyPhotoUploading = (
+    (recipeDraft.fotos && recipeDraft.fotos.some(f => (f as any).uploading)) ||
+    recipeDraft.pasos.some(p => Array.isArray((p as any).multimedia) && (p as any).multimedia.some((m: any) => m.uploading))
+  );
+
   return (
     <ThemedView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
@@ -224,7 +262,7 @@ const CreateRecipeScreen = () => {
         <View style={styles.photoSection}>
           {recipeDraft.fotos && recipeDraft.fotos.length > 0 ? (
             <TouchableOpacity style={styles.photoButton} onPress={() => setShowCamera(true)}>
-              <Image source={{ uri: `https://YOUR_SUPABASE_URL/storage/v1/object/public/users/${recipeDraft.fotos[0].path}` }} style={{ width: 120, height: 120, borderRadius: 10 }} />
+              <Image source={{ uri: recipeDraft.fotos[0].path }} style={{ width: 120, height: 120, borderRadius: 10 }} />
               <ThemedText style={styles.photoText}>Cambiar Foto del Plato</ThemedText>
             </TouchableOpacity>
           ) : (
@@ -323,9 +361,30 @@ const CreateRecipeScreen = () => {
         </View>
       </ScrollView>
       <View style={styles.footer}>
-        <CustomButton text="Cancelar" onPress={handleGoBack} variant="secondary" disabled={false} />
-        <CustomButton text="Publicar" onPress={handlePublicar} variant="primary" disabled={createRecipeMutation.isPending} />
+        <CustomButton text="Cancelar" onPress={handleGoBack} variant="secondary" disabled={createRecipeMutation.isPending || isAnyPhotoUploading} />
+        <CustomButton 
+          text="Publicar" 
+          onPress={handlePublicar} 
+          variant="primary" 
+          disabled={createRecipeMutation.isPending || isAnyPhotoUploading} 
+        />
       </View>
+      {isAnyPhotoUploading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ThemedText style={styles.loadingText}>
+            Esperando que se suban todas las fotos...
+          </ThemedText>
+        </View>
+      )}
+      {createRecipeMutation.isPending && !isAnyPhotoUploading && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ThemedText style={styles.loadingText}>
+            Creando receta...
+          </ThemedText>
+        </View>
+      )}
       <CameraModal
         isOpen={showCamera}
         toogleOpen={() => setShowCamera(false)}
@@ -433,6 +492,22 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     marginLeft: 15,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: theme.colors.light,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 20,
   },
 });
 

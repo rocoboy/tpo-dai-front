@@ -36,10 +36,10 @@ const BADGE_STYLES = {
   pendiente: { backgroundColor: '#FFE082', color: '#B26A00' },
 };
 
-export default function RecetasScreen({navigation} : {navigation: any}) {
+export default function RecetasScreen({ navigation }: { navigation: any }) {
   const { userData, modal } = useAppContext();
   const { savedRecipes, removeRecipe, getOriginalRecipeId } = useSavedRecipes();
-  
+
   // Estados para filtros
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
   const [dropdownValue, setDropdownValue] = React.useState('todas');
@@ -47,16 +47,16 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
   const [activeFilter, setActiveFilter] = React.useState('nombre');
   const [orderBy, setOrderBy] = React.useState('nombre'); // Por defecto por nombre
   const [search, setSearch] = React.useState('');
-  
+
   // Estados para datos de filtros
   const [ingredientes, setIngredientes] = React.useState<IngredienteBase[]>([]);
   const [tiposReceta, setTiposReceta] = React.useState<TipoReceta[]>([]);
   // Estado para búsqueda con debounce
   const searchTimeoutRef = React.useRef<any>(null);
-  
+
   // Estado para dropdown de tipos
   const [tiposDropdownOpen, setTiposDropdownOpen] = React.useState(false);
-  
+
   // Estados para recetas
   const [recetas, setRecetas] = React.useState<Receta[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -140,7 +140,7 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
         setRecetas([]);
       }
     } catch (e: any) {
-      setRecetas([]);       
+      setRecetas([]);
       if (e?.message) {
         modal.setType('dialog');
         modal.setDialogData({
@@ -220,8 +220,8 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
     if (activeFilter === 'tipo') {
       return (
         <View style={styles.filterDropdownWrapper}>
-          <TouchableOpacity 
-            style={styles.filterDropdownHeader} 
+          <TouchableOpacity
+            style={styles.filterDropdownHeader}
             onPress={() => setTiposDropdownOpen((v) => !v)}
           >
             <Text style={styles.filterDropdownText}>
@@ -278,12 +278,12 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
 
     const handleSearchChange = (text: string) => {
       setSearch(text);
-      
+
       // Limpiar el timeout anterior
       if (searchTimeoutRef.current) {
         clearTimeout(searchTimeoutRef.current);
       }
-      
+
       // Establecer un nuevo timeout de 1 segundo
       searchTimeoutRef.current = setTimeout(() => {
         handleFilterChange(activeFilter, text);
@@ -347,7 +347,6 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
           modal.setOpenModal(false);
           try {
             await deleteRecipe(String(item.id), userData.token);
-            fetchRecetas();
           } catch (e) {
             modal.setType('dialog');
             modal.setDialogData({
@@ -367,8 +366,7 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
     };
 
     return (
-      <View style={[styles.recetaCard, { position: 'relative' }]}> {/* Usar View para overlay del badge */}
-        {/* Badge de estado arriba a la derecha para todas las recetas propias */}
+      <View style={[styles.recetaCard, { position: 'relative' }]}>
         {isMyRecipe && item.estado && (
           <Text style={[
             styles.badgeEstado,
@@ -392,12 +390,12 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
         >
           <Image source={item.imagen ? { uri: item.imagen } : require('@/assets/images/bigLogo.png')} style={styles.recetaImg} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.recetaNombre}>{item.nombre}</Text>
-            <Text style={styles.recetaAutor}>👤 {item.autor}</Text>
+            <Text style={styles.recetaNombre}>{String(item.nombre ?? '')}</Text>
+            <Text style={styles.recetaAutor}>👤 {String(item.autor ?? '')}</Text>
             <Text style={styles.recetaInfo}>
-              {item.porciones} Porciones  
-              <FontAwesome name="star" size={13} color="#FFD700" /> 
-              {item.promedioCalificacion?.toFixed(1) ?? '-'}
+              <Text>{String(item.porciones ?? '')} Porciones</Text>
+              <FontAwesome name="star" size={13} color="#FFD700" />
+              {item.promedioCalificacion !== undefined && item.promedioCalificacion !== null ? String(item.promedioCalificacion.toFixed(1)) : '-'}
             </Text>
           </View>
         </TouchableOpacity>
@@ -510,53 +508,53 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#fff' },
   container: { flex: 1, backgroundColor: '#fff' },
   dropdownWrapper: { width: 160, alignItems: 'center', marginTop: 0 },
-  dropdownHeader: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    backgroundColor: '#fff', 
-    borderRadius: 8, 
-    padding: 8, 
-    elevation: 2, 
-    shadowColor: '#000', 
-    shadowOpacity: 0.05, 
-    shadowRadius: 2, 
-    shadowOffset: { width: 0, height: 1 }, 
-    justifyContent: 'space-between', 
+  dropdownHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 8,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+    justifyContent: 'space-between',
     width: 160,
     minHeight: 36,
   },
   dropdownHeaderText: { fontSize: 16, fontWeight: 'bold', color: '#222' },
-  dropdownMenu: { 
-    position: 'absolute', 
-    top: 44, 
-    left: 0, 
-    right: 0, 
-    backgroundColor: '#fff', 
-    borderRadius: 8, 
-    elevation: 4, 
-    shadowColor: '#000', 
-    shadowOpacity: 0.1, 
-    shadowRadius: 4, 
-    shadowOffset: { width: 0, height: 2 }, 
-    zIndex: 10 
+  dropdownMenu: {
+    position: 'absolute',
+    top: 44,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    zIndex: 10
   },
   dropdownOption: { padding: 10 },
   dropdownOptionText: { fontSize: 15, color: '#222' },
   dropdownOptionTextActive: { fontWeight: 'bold', color: '#00bfa5' },
   filtersContainer: { paddingHorizontal: 16, paddingTop: 8, zIndex: 1 },
-  filterInput: { 
-    minWidth: 120, 
-    borderBottomWidth: 1, 
-    borderColor: '#ccc', 
-    fontSize: 15, 
-    paddingVertical: 2, 
+  filterInput: {
+    minWidth: 120,
+    borderBottomWidth: 1,
+    borderColor: '#ccc',
+    fontSize: 15,
+    paddingVertical: 2,
     marginBottom: 8,
   },
-  filtersRowScroll: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
-    marginBottom: 8, 
-    flexWrap: 'nowrap' 
+  filtersRowScroll: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    flexWrap: 'nowrap'
   },
   filterChip: {
     backgroundColor: '#eee',
@@ -583,7 +581,7 @@ const styles = StyleSheet.create({
   recetaAutor: { fontSize: 13, color: '#888' },
   recetaInfo: { fontSize: 13, color: '#888', marginTop: 2 },
   recetaActions: { flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' },
-  removeSavedButton: { 
+  removeSavedButton: {
     padding: 8,
     borderRadius: 20,
     backgroundColor: '#fff5f5',
@@ -634,9 +632,9 @@ const styles = StyleSheet.create({
     marginTop: 40,
   },
 
-  filterRow: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 8,
     gap: 8,
   },
@@ -649,8 +647,8 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     gap: 4,
   },
-  clearFiltersText: { 
-    color: '#666', 
+  clearFiltersText: {
+    color: '#666',
     fontSize: 14,
     fontWeight: '500',
   },
@@ -677,8 +675,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#ccc',
     paddingVertical: 2,
   },
-  filterDropdownText: { 
-    fontSize: 15, 
+  filterDropdownText: {
+    fontSize: 15,
     color: '#222',
     flex: 1,
   },
@@ -696,7 +694,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     zIndex: 15,
   },
-  filterDropdownOption: { 
+  filterDropdownOption: {
     padding: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',

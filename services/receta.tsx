@@ -83,6 +83,7 @@ export async function getIngredientes(context?: { userData: any; modal: any }) {
 }
 
 export async function createRecipe(recipeData: any, token: string, context?: { userData: any; modal: any }) {
+  console.log("recipe data", recipeData);
   if (!context) context = { userData: { token }, modal: undefined };
   if (!context.userData) context.userData = { token };
   else context.userData.token = token;

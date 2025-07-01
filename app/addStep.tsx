@@ -1,7 +1,7 @@
 import CustomButton from '@/components/Button';
 import { ThemedText } from '@/components/ThemedText';
 import theme from '@/constants/types';
-import { useAppContext } from '@/context/Context';
+import { ensureRecipeFolderId, useAppContext } from '@/context/Context';
 import { handleUploadStepMedia } from '@/helpers/uploadPhotos';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
@@ -33,7 +33,6 @@ const AddStepScreen: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
   const [media, setMedia] = useState<{ uri: string; type: 'image' | 'video'; name: string; uploading?: boolean; url?: string }[]>([]);
-  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     setCharCount(initialDescripcion.length);
@@ -48,7 +47,44 @@ const AddStepScreen: React.FC = () => {
     }
     if (!result.canceled && result.assets && result.assets.length > 0) {
       const asset = result.assets[0];
-      setMedia((prev) => [...prev, { uri: asset.uri, type: mediaType, name: asset.fileName || `media_${Date.now()}.${mediaType === 'image' ? 'jpg' : 'mp4'}` }]);
+      const newMedia = { 
+        uri: asset.uri, 
+        type: mediaType, 
+        name: asset.fileName || `media_${Date.now()}.${mediaType === 'image' ? 'jpg' : 'mp4'}`,
+        uploading: true,
+        url: undefined
+      };
+      
+      // Agregar inmediatamente con estado de subida
+      setMedia((prev) => [...prev, newMedia]);
+      
+      try {
+        // Asegurar que siempre haya un folderId válido
+        const draftWithId = await ensureRecipeFolderId(recipeDraft);
+        if (draftWithId.folderId !== recipeDraft.folderId) {
+          setRecipeDraft(draftWithId);
+        }
+        
+        const nroPaso = isEditing && editIndex !== null ? editIndex + 1 : recipeDraft.pasos.length + 1;
+        const fileName = newMedia.name;
+        
+        console.log("ID FOLDER:", draftWithId.folderId);
+        console.log("NRO PASO:", nroPaso);
+        
+        const fullPath = await handleUploadStepMedia(asset.uri, draftWithId.folderId || 'temp', nroPaso, fileName, true);
+        
+        // Actualizar el estado con la URL subida
+        setMedia((prev) => prev.map((m, idx) => 
+          idx === prev.length - 1 
+            ? { ...m, uploading: false, url: fullPath }
+            : m
+        ));
+      } catch (error) {
+        console.error('Error subiendo archivo:', error);
+        // Remover el archivo si falló la subida
+        setMedia((prev) => prev.filter((_, idx) => idx !== prev.length - 1));
+        alert('Error subiendo archivo. Intenta de nuevo.');
+      }
     }
   };
 
@@ -58,33 +94,20 @@ const AddStepScreen: React.FC = () => {
 
   const handleAddPaso = async () => {
     if (descripcion.trim().length === 0) return;
-    setUploading(true);
-    let uploadedMedia = [];
-    try {
-      for (let i = 0; i < media.length; i++) {
-        const m = media[i];
-        // idReceta: si ya existe en draft, usarlo, sino 'draft'
-        const idReceta = recipeDraft.idTipo || 'draft';
-        const nroPaso = isEditing && editIndex !== null ? editIndex + 1 : recipeDraft.pasos.length + 1;
-        const fileName = m.name;
-        // Subir archivo
-        const fullPath = await handleUploadStepMedia(m.uri, idReceta, nroPaso, fileName);
-        uploadedMedia.push({
-          url: fullPath,
-          extension: fileName.split('.').pop(),
-          tipo_contenido: m.type === 'image' ? 'foto' : 'video',
-        });
-      }
-    } catch (e) {
-      setUploading(false);
-      alert('Error subiendo archivos: ' + e);
-      return;
-    }
-    setUploading(false);
+    
+    // Procesar archivos que ya están subidos
+    const multimedia = media
+      .filter(m => m.url && !m.uploading)
+      .map(m => ({
+        url: m.url!,
+        extension: m.name.split('.').pop(),
+        tipo_contenido: m.type === 'image' ? 'foto' : 'video',
+      }));
+    
     if (isEditing && editIndex !== null) {
       setRecipeDraft(d => ({
         ...d,
-        pasos: d.pasos.map((p, i) => i === editIndex ? { ...p, texto: descripcion, multimedia: uploadedMedia } : p)
+        pasos: d.pasos.map((p, i) => i === editIndex ? { ...p, texto: descripcion, multimedia } : p)
       }));
       setDescripcion('');
       setIsEditing(false);
@@ -95,7 +118,7 @@ const AddStepScreen: React.FC = () => {
         ...d,
         pasos: [
           ...d.pasos,
-          { nroPaso: d.pasos.length + 1, texto: descripcion, multimedia: uploadedMedia }
+          { nroPaso: d.pasos.length + 1, texto: descripcion, multimedia }
         ]
       }));
       setDescripcion('');
@@ -106,12 +129,21 @@ const AddStepScreen: React.FC = () => {
   const handleFinalizar = () => {
     let nuevosPasos = recipeDraft.pasos;
     if (descripcion.trim().length > 0) {
+      // Solo incluir archivos que ya están subidos
+      const multimedia = media
+        .filter(m => m.url && !m.uploading)
+        .map(m => ({
+          url: m.url!,
+          extension: m.name.split('.').pop(),
+          tipo_contenido: m.type === 'image' ? 'foto' : 'video',
+        }));
+      
       if (isEditing && editIndex !== null) {
-        nuevosPasos = recipeDraft.pasos.map((p, i) => i === editIndex ? { ...p, texto: descripcion } : p);
+        nuevosPasos = recipeDraft.pasos.map((p, i) => i === editIndex ? { ...p, texto: descripcion, multimedia } : p);
       } else {
         nuevosPasos = [
           ...recipeDraft.pasos,
-          { nroPaso: recipeDraft.pasos.length + 1, texto: descripcion, multimedia: [] }
+          { nroPaso: recipeDraft.pasos.length + 1, texto: descripcion, multimedia }
         ];
       }
     }
@@ -120,9 +152,24 @@ const AddStepScreen: React.FC = () => {
   };
 
   const handleEditPaso = (index: number) => {
-    setDescripcion(recipeDraft.pasos[index].texto);
+    const paso = recipeDraft.pasos[index];
+    setDescripcion(paso.texto);
     setIsEditing(true);
     setEditIndex(index);
+    
+    // Cargar archivos multimedia subidos existentes
+    if (paso.multimedia && paso.multimedia.length > 0) {
+      const existingMedia = paso.multimedia.map(m => ({
+        uri: m.url, // Usar la URL como URI para mostrar
+        type: m.tipo_contenido === 'foto' ? 'image' : 'video' as 'image' | 'video',
+        name: m.url.split('/').pop() || `media_${Date.now()}`,
+        uploading: false,
+        url: m.url // Ya es una URL completa
+      }));
+      setMedia(existingMedia);
+    } else {
+      setMedia([]);
+    }
   };
 
   const handleDeletePaso = (index: number) => {
@@ -161,6 +208,9 @@ const AddStepScreen: React.FC = () => {
           <Text style={styles.charCount}>{charCount}/500</Text>
         </View>
         <ThemedText style={styles.addMediaLabel}>Agregar Imagenes / Video</ThemedText>
+        <ThemedText style={{ fontSize: 12, color: '#666', marginBottom: 10, fontStyle: 'italic' }}>
+          Los archivos se suben automáticamente a medida que los seleccionas
+        </ThemedText>
         <View style={styles.mediaRow}>
           <TouchableOpacity style={styles.mediaBox} onPress={() => pickMedia('image')}><Text style={styles.mediaIcon}>🖼️</Text></TouchableOpacity>
           <TouchableOpacity style={styles.mediaBox} onPress={() => pickMedia('video')}><Text style={styles.mediaIcon}>🎥</Text></TouchableOpacity>
@@ -176,6 +226,18 @@ const AddStepScreen: React.FC = () => {
                     <Text style={{ color: '#fff', fontSize: 32 }}>🎥</Text>
                   </View>
                 )}
+                {/* Indicador de carga */}
+                {m.uploading && (
+                  <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 8, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="small" color="#fff" />
+                  </View>
+                )}
+                {/* Check verde si ya está subido */}
+                {m.url && !m.uploading && (
+                  <View style={{ position: 'absolute', top: 4, left: 4, backgroundColor: '#4CAF50', borderRadius: 12, width: 24, height: 24, justifyContent: 'center', alignItems: 'center' }}>
+                    <Text style={{ color: '#fff', fontSize: 12 }}>✓</Text>
+                  </View>
+                )}
                 <TouchableOpacity onPress={() => removeMedia(idx)} style={{ position: 'absolute', top: -8, right: -8, backgroundColor: '#fff', borderRadius: 12, padding: 2, elevation: 2 }}>
                   <Text style={{ color: '#f00', fontWeight: 'bold', fontSize: 16 }}>×</Text>
                 </TouchableOpacity>
@@ -183,7 +245,6 @@ const AddStepScreen: React.FC = () => {
             ))}
           </View>
         )}
-        {uploading && <ActivityIndicator size="small" color={theme.colors.primary} style={{ marginBottom: 10 }} />}
         <View style={styles.pasosList}>
           {recipeDraft.pasos.map((p, i) => (
             <View key={i} style={styles.pasoItem}>

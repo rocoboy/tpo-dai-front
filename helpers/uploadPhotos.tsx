@@ -1,5 +1,9 @@
+import { buildSupabaseUrl, env } from '@/enviroment';
 import { uploadFile } from '@/services/bucket';
+import { createClient } from '@supabase/supabase-js';
 import * as FileSystem from 'expo-file-system';
+
+const supabase = createClient(env.SUPABASE_API_URL, env.SUPABASE_BUCKET_API_KEY);
 
 export const handleUploadPhoto = async (frontURI: string, backURI: string, id: number) => {
     if (frontURI.length == 0 || backURI.length == 0) {
@@ -40,7 +44,7 @@ export const handleUploadPhoto = async (frontURI: string, backURI: string, id: n
     }
 };
 
-export const handleUploadStepMedia = async (uri: string, idReceta: string | number, nroPaso: number, fileName: string) => {
+export const handleUploadStepMedia = async (uri: string, folderId: string, nroPaso: number, fileName: string, upsert: boolean = false) => {
     if (!uri) throw Error("No hay archivo para subir");
     try {
         const fileExtension = uri.substring(uri.lastIndexOf(".") + 1).toLowerCase();
@@ -62,12 +66,66 @@ export const handleUploadStepMedia = async (uri: string, idReceta: string | numb
         } else {
             contentType = 'application/octet-stream';
         }
-        // Path: recipes/{idReceta}/{nroPaso}/{fileName}
-        const path = `${idReceta}/${nroPaso}/${fileName}`;
+        // Path: recipes/{folderId}/{nroPaso}/{fileName}
+        const path = `${folderId}/${nroPaso}/${fileName}`;
         // Usar bucket 'recipes'
-        const response = await uploadFile(fileContent, path, undefined, fileExtension, contentType, 'recipes');
+        const response = await uploadFile(fileContent, path, undefined, fileExtension, contentType, 'recipes', upsert);
+        if (response?.fullPath) {
+          // Construir URL completa de Supabase usando helper
+          return buildSupabaseUrl('recipes', response.fullPath);
+        }
         return response?.fullPath;
     } catch (error: any) {
         throw Error(error?.message || String(error));
     }
+};
+
+// Función para generar ID único aleatorio
+export const generateUniqueId = () => {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 15);
+  return `recipe_${timestamp}_${random}`;
+};
+
+// Función para verificar si una carpeta existe en el bucket
+export const checkFolderExists = async (folderPath: string): Promise<boolean> => {
+  try {
+    const { data, error } = await supabase.storage
+      .from('recipes')
+      .list(folderPath, { limit: 1 });
+    
+    if (error) {
+      console.log('Error checking folder:', error);
+      return false;
+    }
+    
+    return data && data.length > 0;
+  } catch (error) {
+    console.log('Error checking folder:', error);
+    return false;
+  }
+};
+
+// Función para generar un ID único que no exista en el bucket
+export const generateUniqueFolderId = async (): Promise<string> => {
+  let attempts = 0;
+  const maxAttempts = 10;
+  
+  while (attempts < maxAttempts) {
+    const folderId = generateUniqueId();
+    const exists = await checkFolderExists(folderId);
+    
+    if (!exists) {
+      console.log('ID único generado:', folderId);
+      return folderId;
+    }
+    
+    attempts++;
+    console.log(`Intento ${attempts}: ID ${folderId} ya existe, generando nuevo...`);
+  }
+  
+  // Si no se puede generar uno único después de 10 intentos, usar timestamp + random
+  const fallbackId = `recipe_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
+  console.log('Usando ID de respaldo:', fallbackId);
+  return fallbackId;
 };

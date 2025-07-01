@@ -3,7 +3,7 @@ import { env } from '../enviroment';
 
 const supabase = createClient(env.SUPABASE_API_URL, env.SUPABASE_BUCKET_API_KEY)
 
-export async function uploadFile(blobFile: any, filePathOrName: string, userId?: number, fileExtension?: string, contentType?: string, bucketName?: string) {
+export async function uploadFile(blobFile: any, filePathOrName: string, userId?: number, fileExtension?: string, contentType?: string, bucketName?: string, upsert: boolean = false) {
   // Si bucketName no se pasa, usar 'users' por defecto
   const bucket = bucketName || 'users';
   // Si se pasa userId, armar path como antes, si no, usar filePathOrName como path completo
@@ -11,7 +11,7 @@ export async function uploadFile(blobFile: any, filePathOrName: string, userId?:
   try {
     const response = await supabase.storage.from(bucket).upload(path, blobFile, {
         contentType: contentType || (fileExtension ? `image/${fileExtension}` : 'application/octet-stream'),
-        upsert: false,
+        upsert: upsert,
     });
     console.log("errorsin", response.error?.cause, response.error?.message);
     return response.data;

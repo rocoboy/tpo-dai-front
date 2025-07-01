@@ -6,6 +6,19 @@ export interface FotoReceta {
   extension: string;
   path: string;
 }
+
+export interface FotoLocal {
+  uri: string;
+  extension: string;
+  name: string;
+}
+
+export interface MultimediaLocal {
+  uri: string;
+  type: 'image' | 'video';
+  name: string;
+}
+
 export interface UtilizadoReceta {
   idIngrediente: string;
   idUnidad: string;
@@ -14,18 +27,23 @@ export interface UtilizadoReceta {
   observaciones?: string;
   descripcionUnidad: string;
 }
+
 export interface PasoReceta {
   nroPaso: number;
   texto: string;
   multimedia: any[];
+  multimediaLocal?: MultimediaLocal[]; // Fotos/videos locales antes de subir
 }
+
 export interface RecipeDraft {
+  folderId?: string; // ID único para la carpeta en el bucket
   nombreReceta: string;
   descripcionReceta: string;
   porciones: number;
   cantidadPersonas: number;
   idTipo: string;
-  fotos: FotoReceta[];
+  fotos: FotoReceta[]; // URLs finales después de subir
+  fotosLocal?: FotoLocal[]; // Fotos locales antes de subir
   utilizados: UtilizadoReceta[];
   pasos: PasoReceta[];
 }
@@ -92,13 +110,39 @@ interface ContextType {
     clearRecipeDraft: () => void;
 }
 
+// Contador para generar IDs únicos de recetas
+let recipeDraftCounter = 0;
+
+const generateRecipeDraftId = () => {
+  recipeDraftCounter++;
+  const id = `draft_${Date.now()}_${recipeDraftCounter}`;
+  console.log("Nuevo ID de draft generado:", id);
+  return id;
+};
+
+// Helper para asegurar que siempre haya un folderId válido
+export const ensureRecipeFolderId = async (draft: RecipeDraft): Promise<RecipeDraft> => {
+  if (!draft.folderId) {
+    // Importar dinámicamente para evitar problemas de circular imports
+    const { generateUniqueFolderId } = await import('@/helpers/uploadPhotos');
+    const folderId = await generateUniqueFolderId();
+    return {
+      ...draft,
+      folderId
+    };
+  }
+  return draft;
+};
+
 const defaultRecipeDraft: RecipeDraft = {
+  folderId: generateRecipeDraftId(),
   nombreReceta: '',
   descripcionReceta: '',
   porciones: 1,
   cantidadPersonas: 1,
   idTipo: '',
   fotos: [],
+  fotosLocal: [],
   utilizados: [],
   pasos: [],
 };
@@ -160,8 +204,17 @@ const ContextProvider = ({ children }: { children: ReactNode }) => {
     const [registerStudent, setRegisterStudent] = useState(false);
     const [camera, setCamera] = useState({frontURI: "", backURI: "", actualIdSide: undefined as "front" | "back" | undefined});
     const [modalProps, setModalProps] = useState<any>({});
-    const [recipeDraft, setRecipeDraft] = useState<RecipeDraft>(defaultRecipeDraft);
-    const clearRecipeDraft = () => setRecipeDraft(defaultRecipeDraft);
+    const [recipeDraft, setRecipeDraft] = useState<RecipeDraft>(() => ({
+      ...defaultRecipeDraft,
+      folderId: generateRecipeDraftId()
+    }));
+    const clearRecipeDraft = () => {
+      const newDraft = {
+        ...defaultRecipeDraft,
+        folderId: generateRecipeDraftId()
+      };
+      setRecipeDraft(newDraft);
+    };
 
     const initialState = {
         loading: {
