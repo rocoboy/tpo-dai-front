@@ -1,6 +1,7 @@
 import CustomButton from '@/components/Button';
 import theme from '@/constants/types';
 import { useAppContext } from '@/context/Context';
+import { useSavedRecipes } from '@/hooks/useSavedRecipes';
 import { Calificacion, IngredienteEscalado, IngredienteEscaladoFrontend, Paso, RecetaDetalle, Utilizado } from '@/models/receta';
 import { addToFavorites, createRecipeComment, getFavorites, getRecipeById, getRecipeComments, removeFromFavorites, scaleRecipeByIngredient, scaleRecipeByPortions } from '@/services/receta';
 import FontAwesome from '@expo/vector-icons/build/FontAwesome';
@@ -14,6 +15,7 @@ export default function RecipeDetailScreen({ navigation }: { navigation: any }) 
   const route = useRoute();
   const { recetaId } = route.params as { recetaId: string | number };
   const { userData, modal } = useAppContext();
+  const { saveRecipe, removeRecipe, isRecipeSaved, updateRecipeEscalado, getSavedRecipe, getOriginalRecipeId } = useSavedRecipes();
 
   // Estados locales para el input de comentario y rating
   const [comentario, setComentario] = React.useState('');
@@ -108,32 +110,58 @@ export default function RecipeDetailScreen({ navigation }: { navigation: any }) 
   // Al cargar la receta, inicializar los estados locales
   React.useEffect(() => {
     if (recetaDetalleQuery.data) {
-      setIngredientesEscalados(recetaDetalleQuery.data.utilizados.map((u: Utilizado) => ({
-        id: u.ingrediente.idIngrediente,
-        nombre: u.ingrediente.nombre,
-        cantidad: u.cantidad,
-        unidad: u.unidad.descripcion,
-      })));
-      setPorcionesEscaladas(recetaDetalleQuery.data.porciones);
-      setIsEscalado(false);
+      // Verificar si es una receta guardada y cargar su estado de escalado
+      const originalId = getOriginalRecipeId(String(recetaId));
+      const savedRecipe = getSavedRecipe(originalId);
+      
+      if (savedRecipe && savedRecipe.isEscalado) {
+        // Cargar el estado de escalado guardado
+        setIngredientesEscalados(savedRecipe.ingredientesEscalados || []);
+        setPorcionesEscaladas(savedRecipe.porcionesEscaladas || recetaDetalleQuery.data.porciones);
+        setIsEscalado(true);
+      } else {
+        // Inicializar con los valores originales
+        setIngredientesEscalados(recetaDetalleQuery.data.utilizados.map((u: Utilizado) => ({
+          id: u.ingrediente.idIngrediente,
+          nombre: u.ingrediente.nombre,
+          cantidad: u.cantidad,
+          unidad: u.unidad.descripcion,
+        })));
+        setPorcionesEscaladas(recetaDetalleQuery.data.porciones);
+        setIsEscalado(false);
+      }
     }
-  }, [recetaDetalleQuery.data]);
+  }, [recetaDetalleQuery.data, recetaId]);
 
   // Mutación para escalar por ingrediente
   const scaleByIngredientMutation = useMutation({
     mutationFn: async ({ ingredienteId, recetaCantidad, nuevaCantidad }: { ingredienteId: string; recetaCantidad: number; nuevaCantidad: number }) =>
       scaleRecipeByIngredient(String(recetaId), ingredienteId, recetaCantidad, nuevaCantidad, userData.token, { userData, modal }),
     onSuccess: (data: IngredienteEscalado[], variables) => {
-      setIngredientesEscalados(data.map(item => ({
+      const nuevosIngredientes = data.map(item => ({
         id: item.nombreIngrediente, // Usar nombre como ID temporal
         nombre: item.nombreIngrediente,
         cantidad: item.cantidadEscalada,
         unidad: item.unidad,
-      })));
+      }));
+      
+      setIngredientesEscalados(nuevosIngredientes);
       // Calcular nuevas porciones basado en el factor de escalado
       const factor = variables.nuevaCantidad / variables.recetaCantidad;
-      setPorcionesEscaladas(Math.round(recetaDetalleQuery.data.porciones * factor * 100) / 100);
+      const nuevasPorciones = Math.round(recetaDetalleQuery.data.porciones * factor * 100) / 100;
+      setPorcionesEscaladas(nuevasPorciones);
       setIsEscalado(true);
+      
+      // Guardar el escalado en las recetas guardadas si está guardada
+      if (isRecipeSaved(String(recetaId))) {
+        const originalId = getOriginalRecipeId(String(recetaId));
+        updateRecipeEscalado(originalId, {
+          ingredientesEscalados: nuevosIngredientes,
+          porcionesEscaladas: nuevasPorciones,
+          isEscalado: true,
+        });
+      }
+      
       modal.setOpenModal(false);
       modal.setType("dialog");
       modal.setDialogData({
@@ -158,14 +186,27 @@ export default function RecipeDetailScreen({ navigation }: { navigation: any }) 
   const scaleByPortionsMutation = useMutation({
     mutationFn: async (targetPortions: number) =>
       scaleRecipeByPortions(String(recetaId), targetPortions, userData.token, { userData, modal }),
-    onSuccess: (data: IngredienteEscalado[]) => {
-      setIngredientesEscalados(data.map(item => ({
+    onSuccess: (data: IngredienteEscalado[], variables) => {
+      const nuevosIngredientes = data.map(item => ({
         id: item.nombreIngrediente, // Usar nombre como ID temporal
         nombre: item.nombreIngrediente,
         cantidad: item.cantidadEscalada,
         unidad: item.unidad,
-      })));
+      }));
+      
+      setIngredientesEscalados(nuevosIngredientes);
       setIsEscalado(true);
+      
+      // Guardar el escalado en las recetas guardadas si está guardada
+      if (isRecipeSaved(String(recetaId))) {
+        const originalId = getOriginalRecipeId(String(recetaId));
+        updateRecipeEscalado(originalId, {
+          ingredientesEscalados: nuevosIngredientes,
+          porcionesEscaladas: variables,
+          isEscalado: true,
+        });
+      }
+      
       modal.setOpenModal(false);
       modal.setType("dialog");
       modal.setDialogData({
@@ -187,8 +228,20 @@ export default function RecipeDetailScreen({ navigation }: { navigation: any }) 
   });
 
   // AHORA SÍ LOS EARLY RETURNS
-  if (recetaDetalleQuery.isLoading) return <ActivityIndicator size="large" style={{ marginTop: 40 }} />;
-  if (recetaDetalleQuery.isError) return <Text style={{ color: 'red', marginTop: 40 }}>{(recetaDetalleQuery.error as any)?.message}</Text>;
+  if (recetaDetalleQuery.isLoading) return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+      <ActivityIndicator size="large" color="#00bfa5" />
+      <Text style={{ marginTop: 16, color: '#666', fontSize: 16 }}>Cargando receta...</Text>
+    </View>
+  );
+  if (recetaDetalleQuery.isError) return (
+    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+      <FontAwesome name="exclamation-triangle" size={48} color="#ff4757" />
+      <Text style={{ marginTop: 16, color: '#ff4757', fontSize: 16, textAlign: 'center' }}>
+        {(recetaDetalleQuery.error as any)?.message || 'Error al cargar la receta'}
+      </Text>
+    </View>
+  );
   
   const receta = recetaDetalleQuery.data as RecetaDetalle | undefined;
   const comentarios = (comentariosQuery.data as Calificacion[]) || [];
@@ -261,7 +314,7 @@ export default function RecipeDetailScreen({ navigation }: { navigation: any }) 
     modal.setOpenModal(true);
   };
 
-  const handleEscalarPorciones = (targetPortions: number) => {
+  const handleEscalarPorciones = (nuevasPorciones: number) => {
     if (userData.alias === 'invitado') {
       modal.setType('dialog');
       modal.setDialogData({
@@ -271,19 +324,98 @@ export default function RecipeDetailScreen({ navigation }: { navigation: any }) 
         onButtonPress: () => modal.setOpenModal(false),
       });
       modal.setOpenModal(true);
-    } else {
-      scaleByPortionsMutation.mutate(targetPortions);
+      return;
     }
+    
+    if (!receta) return;
+    
+    const factor = nuevasPorciones / receta.porciones;
+    const nuevosIngredientes = receta.utilizados.map(utilizado => ({
+      id: utilizado.ingrediente.idIngrediente,
+      nombre: utilizado.ingrediente.nombre,
+      cantidad: Math.round((utilizado.cantidad * factor) * 100) / 100,
+      unidad: utilizado.unidad.descripcion,
+    }));
+    
+    setIngredientesEscalados(nuevosIngredientes);
+    setPorcionesEscaladas(nuevasPorciones);
+    setIsEscalado(true);
+    
+    // Guardar el escalado en las recetas guardadas si está guardada
+    if (isRecipeSaved(String(recetaId))) {
+      const originalId = getOriginalRecipeId(String(recetaId));
+      updateRecipeEscalado(originalId, {
+        ingredientesEscalados: nuevosIngredientes,
+        porcionesEscaladas: nuevasPorciones,
+        isEscalado: true,
+      });
+    }
+    
+    modal.setOpenModal(false);
   };
 
   const handleOpenEscalarModal = () => {
+    if (userData.alias === 'invitado') {
+      modal.setType('dialog');
+      modal.setDialogData({
+        title: 'Acceso Restringido',
+        subTitle: 'Necesitas iniciar sesión para escalar recetas.',
+        icon: 'exclamation-triangle',
+        onButtonPress: () => modal.setOpenModal(false),
+      });
+      modal.setOpenModal(true);
+      return;
+    }
+    
     modal.setType("escalarPorciones");
     modal.setModalProps({
       porcionesActuales: porcionesEscaladas,
       onCancel: () => modal.setOpenModal(false),
-      onSubmit: handleEscalarPorciones
+      onSubmit: (nuevasPorciones: number) => {
+        // Usar la mutación del servidor si el usuario está logueado
+        scaleByPortionsMutation.mutate(nuevasPorciones);
+      }
     });
     modal.setOpenModal(true);
+  };
+
+  const handleToggleSaved = async () => {
+    if (!receta) return;
+    
+    const originalId = getOriginalRecipeId(String(recetaId));
+    const isSaved = isRecipeSaved(originalId);
+    
+    if (isSaved) {
+      const success = await removeRecipe(originalId);
+      if (success) {
+        modal.setType('dialog');
+        modal.setDialogData({
+          title: 'Receta eliminada',
+          subTitle: 'La receta fue eliminada de tus guardados.',
+          icon: 'info',
+          onButtonPress: () => modal.setOpenModal(false),
+        });
+        modal.setOpenModal(true);
+      }
+    } else {
+      const escalado = {
+        ingredientesEscalados,
+        porcionesEscaladas,
+        isEscalado,
+      };
+      
+      const success = await saveRecipe(receta, escalado);
+      if (success) {
+        modal.setType('dialog');
+        modal.setDialogData({
+          title: 'Receta guardada',
+          subTitle: 'La receta fue guardada localmente. Puedes acceder a ella desde "Mis Recetas".',
+          icon: 'check-circle',
+          onButtonPress: () => modal.setOpenModal(false),
+        });
+        modal.setOpenModal(true);
+      }
+    }
   };
 
   return (
@@ -298,6 +430,13 @@ export default function RecipeDetailScreen({ navigation }: { navigation: any }) 
             name={isFavorite ? "heart" : "heart-o"} 
             size={32} 
             color={isFavorite ? "#ff4757" : theme.colors.secondary} 
+          />
+        </Pressable>
+        <Pressable style={styles.saveBtn} onPress={handleToggleSaved}>
+          <FontAwesome 
+            name={isRecipeSaved(getOriginalRecipeId(String(recetaId))) ? "bookmark" : "bookmark-o"} 
+            size={32} 
+            color={isRecipeSaved(getOriginalRecipeId(String(recetaId))) ? theme.colors.primary : theme.colors.secondary} 
           />
         </Pressable>
       </View>
@@ -457,6 +596,14 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   favBtn: {
+    position: 'absolute',
+    top: 40,
+    right: 60,
+    borderRadius: 20,
+    padding: 6,
+    elevation: 2,
+  },
+  saveBtn: {
     position: 'absolute',
     top: 40,
     right: 16,
