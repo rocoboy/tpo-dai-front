@@ -44,7 +44,7 @@ export const apiFetch = async (
   url: string, 
   options: RequestInit = {}, 
   requireAuth: boolean = true,
-  context?: { userData: any; modal: any }
+  context?: { userData?: any; modal?: any }
 ) => {
   // Construir la URL completa
   const fullUrl = url.startsWith('http') ? url : `${env.API_URL}${url}`;
@@ -53,7 +53,7 @@ export const apiFetch = async (
   const headers = requireAuth && context?.userData?.token
     ? createAuthHeaders(context.userData.token)
     : { 'Content-Type': 'application/json' };
-  
+
   // LOG para debug
   if (options.method === 'POST') {
     console.log('API POST:', {
@@ -64,7 +64,7 @@ export const apiFetch = async (
       requireAuth
     });
   }
-  
+
   // Realizar la petición
   const response = await fetch(fullUrl, {
     ...options,
@@ -73,20 +73,23 @@ export const apiFetch = async (
       ...options.headers,
     },
   });
-  
+
   // Manejar errores de autorización
   if (!response.ok) {
+
     const errorData = await response.json().catch(() => ({}));
     const error = {
       status: response.status,
       message: errorData.message || `HTTP ${response.status}`,
       data: errorData
     };
-    
+
+
     // Si es error de autorización y requiere auth, mostrar modal
     if (requireAuth && context && handleAuthError(error, context.modal, context.userData)) {
       throw new Error('Sesión expirada');
     }
+
     
     // Para otros errores, lanzar el error original
     throw error;
@@ -96,22 +99,25 @@ export const apiFetch = async (
 };
 
 // Funciones específicas para diferentes tipos de peticiones
-export const apiGet = (url: string, requireAuth: boolean = true, context?: { userData: any; modal: any }) => 
-  apiFetch(url, { method: 'GET' }, requireAuth, context);
+export async function apiGet(url: string, auth: boolean, context?: { userData?: any; modal?: any }) {
+  return apiFetch(url, { method: 'GET' }, auth, context);
+}
 
-export const apiPost = (url: string, data: any, requireAuth: boolean = true, context?: { userData: any; modal: any }) => {
-  console.log('apiPost call', { url, data, requireAuth, token: context?.userData?.token });
+export async function apiPost(url: string, data: any, auth: boolean, context?: { userData?: any; modal?: any }) {
+  console.log('apiPost call', { url, data, auth, token: context?.userData?.token });
   return apiFetch(url, { 
     method: 'POST', 
     body: JSON.stringify(data) 
-  }, requireAuth, context);
-};
+  }, auth, context);
+}
 
-export const apiPut = (url: string, data: any, requireAuth: boolean = true, context?: { userData: any; modal: any }) => 
-  apiFetch(url, { 
+export async function apiPut(url: string, data: any, auth: boolean, context?: { userData?: any; modal?: any }) {
+  return apiFetch(url, { 
     method: 'PUT', 
     body: JSON.stringify(data) 
-  }, requireAuth, context);
+  }, auth, context);
+}
 
-export const apiDelete = (url: string, requireAuth: boolean = true, context?: { userData: any; modal: any }) => 
-  apiFetch(url, { method: 'DELETE' }, requireAuth, context); 
+export async function apiDelete(url: string, auth: boolean, context?: { userData?: any; modal?: any }) {
+  return apiFetch(url, { method: 'DELETE' }, auth, context);
+} 

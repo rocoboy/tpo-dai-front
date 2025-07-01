@@ -2,7 +2,7 @@ import Header from '@/components/ui/Header';
 import { useAppContext } from '@/context/Context';
 import { useSavedRecipes } from '@/hooks/useSavedRecipes';
 import { IngredienteBase, Receta, TipoReceta } from '@/models/receta';
-import { getAllIngredientes, getAllRecipeTypes, getFavorites, getFilteredRecipes } from '@/services/receta';
+import { getAllIngredientes, getAllRecipeTypes, getFavorites, getFilteredRecipes, getMyRecipes } from '@/services/receta';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import React from 'react';
 import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -30,6 +30,16 @@ const DROPDOWN_OPTIONS = [
   { key: 'favoritas', label: 'Favoritas' },
   { key: 'guardadas', label: 'Guardadas' },
 ];
+
+const BADGE_STYLES = {
+  aprobada: { backgroundColor: '#C8F7E2', color: '#1B8C6E' },
+  pendiente: { backgroundColor: '#FFE082', color: '#B26A00' },
+};
+
+const BADGE_ESTADO = {
+  aprobada: { backgroundColor: '#C8F7E2', color: '#1B8C6E' },
+  pendiente: { backgroundColor: '#FFE082', color: '#B26A00' },
+};
 
 export default function RecetasScreen({navigation} : {navigation: any}) {
   const { userData, modal } = useAppContext();
@@ -61,12 +71,16 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
     loadFilterData();
   }, []);
 
+  React.useEffect(() => {
+    fetchRecetas();
+  }, [dropdownValue, filters, orderBy, savedRecipes]);
+
   const loadFilterData = async () => {
     try {
       if (userData?.token) {
         const [ingreds, tipos] = await Promise.all([
-          getAllIngredientes(userData.token, { userData, modal }),
-          getAllRecipeTypes(userData.token, { userData, modal }),
+          getAllIngredientes(userData.token, { userData }),
+          getAllRecipeTypes(userData.token, { userData }),
         ]);
         setIngredientes(ingreds);
         setTiposReceta(tipos);
@@ -76,16 +90,13 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
     }
   };
 
-  React.useEffect(() => {
-    fetchRecetas();
-  }, [dropdownValue, filters, orderBy, savedRecipes]);
 
   async function fetchRecetas() {
     setLoading(true);
     try {
       if (dropdownValue === 'favoritas') {
         if (!userData.token) throw new Error('Debes iniciar sesión para ver favoritas');
-        const favs = await getFavorites(userData.token, { userData, modal });
+        const favs = await getFavorites(userData.token, { userData });
         setRecetas(sortRecetas(favs));
       } else if (dropdownValue === 'guardadas') {
         // Convertir recetas guardadas al formato de Receta
@@ -100,10 +111,37 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
         })) as Receta[];
         setRecetas(sortRecetas(recetasGuardadas));
       } else if (dropdownValue === 'todas') {
-        const res = await getFilteredRecipes(filters, { userData, modal });
+        const res = await getFilteredRecipes(filters, { userData });
         setRecetas(sortRecetas(res));
+      } else if (dropdownValue === 'mis') {
+        if (!userData.token) {
+          setRecetas([]);
+          modal.setType('dialog');
+          modal.setDialogData({
+            title: 'Acceso restringido',
+            subTitle: 'Debes iniciar sesión para ver tus recetas.',
+            icon: 'exclamation-triangle',
+            showButton: true,
+            buttonText: 'OK',
+            onButtonPress: () => modal.setOpenModal(false),
+          });
+          modal.setOpenModal(true);
+          return;
+        }
+        const myRecipesRaw = await getMyRecipes(userData.token, { userData });
+        // Adaptar los datos al modelo Receta
+        const myRecipes = myRecipesRaw.map((r: any) => ({
+          id: r.idReceta,
+          nombre: r.nombreReceta,
+          autor: r.autor || 'Yo',
+          promedioCalificacion: r.promedioCalificacion,
+          votos: r.votos || 0,
+          porciones: r.porciones,
+          imagen: r.imagen || '',
+          estado: r.estado,
+        }));
+        setRecetas(sortRecetas(myRecipes));
       } else {
-        // TODO: implementar mis recetas
         setRecetas([]);
       }
     } catch (e: any) {
@@ -128,11 +166,11 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
   const sortRecetas = (recetas: Receta[]) => {
     switch (orderBy) {
       case 'nombre':
-        return [...recetas].sort((a, b) => a.nombre.localeCompare(b.nombre));
+        return [...recetas].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
       case 'usuarioAsc':
-        return [...recetas].sort((a, b) => a.autor.localeCompare(b.autor));
+        return [...recetas].sort((a, b) => (a.autor || '').localeCompare(b.autor || ''));
       case 'usuarioDesc':
-        return [...recetas].sort((a, b) => b.autor.localeCompare(a.autor));
+        return [...recetas].sort((a, b) => (b.autor || '').localeCompare(a.autor || ''));
       case 'fecha':
         // Más recientes primero (IDs más altos)
         return [...recetas].sort((a, b) => b.id - a.id);
@@ -298,12 +336,19 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
 
   function renderReceta({ item }: { item: Receta }, navigation: any) {
     const isSavedRecipe = dropdownValue === 'guardadas';
+    const isMyRecipe = dropdownValue === 'mis';
+    const isPendiente = isMyRecipe && item.estado === 'pendiente';
     
     return (
-      <TouchableOpacity style={styles.recetaCard} onPress={() => {
-        const recipeId = isSavedRecipe ? getOriginalRecipeId(item.id.toString()) : item.id;
-        navigation.navigate('recipeDetail', { recetaId: recipeId });
-      }}>
+      <TouchableOpacity
+        style={styles.recetaCard}
+        onPress={() => {
+          if (isPendiente) return; // No permitir acceder al detalle si está pendiente
+          const recipeId = isSavedRecipe ? getOriginalRecipeId(item.id.toString()) : item.id;
+          navigation.navigate('recipeDetail', { recetaId: recipeId });
+        }}
+        activeOpacity={isPendiente ? 1 : 0.7}
+      >
         <Image source={item.imagen ? { uri: item.imagen } : require('@/assets/images/bigLogo.png')} style={styles.recetaImg} />
         <View style={{ flex: 1 }}>
           <Text style={styles.recetaNombre}>{item.nombre}</Text>
@@ -315,6 +360,12 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
           </Text>
         </View>
         <View style={styles.recetaActions}>
+          {/* Badge arriba a la derecha si es pendiente */}
+          {isPendiente && (
+            <Text style={[styles.badgeEstado, styles.badgePendiente, { position: 'absolute', top: 0, right: 0, zIndex: 2 }]}>
+              PENDIENTE
+            </Text>
+          )}
           {isSavedRecipe ? (
             <TouchableOpacity 
               style={styles.removeSavedButton}
@@ -326,7 +377,8 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
               <FontAwesome name="trash" size={20} color="#ff4757" />
             </TouchableOpacity>
           ) : (
-            <FontAwesome name="chevron-right" size={18} color="#888" />
+            // Solo mostrar chevron si no es pendiente
+            !isPendiente && <FontAwesome name="chevron-right" size={18} color="#888" />
           )}
         </View>
       </TouchableOpacity>
@@ -401,7 +453,7 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
           ) : (
             <FlatList
               data={recetas}
-              keyExtractor={(item) => item.id.toString()}
+              keyExtractor={(item, idx) => (item.id !== undefined && item.id !== null ? item.id.toString() : `receta-${idx}`)}
               renderItem={({ item }) => renderReceta({ item }, navigation)}
               contentContainerStyle={{ paddingBottom: 80 }}
               ListEmptyComponent={
@@ -622,4 +674,7 @@ const styles = StyleSheet.create({
   },
   filterDropdownOptionText: { fontSize: 14, color: '#222' },
   filterDropdownOptionTextActive: { fontWeight: 'bold', color: '#00bfa5' },
+  badgeEstado: { alignSelf: 'flex-start', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, fontWeight: 'bold', marginTop: 4, marginBottom: 0, fontSize: 13 },
+  badgeAprobada: { backgroundColor: '#C8F7E2', color: '#1B8C6E' },
+  badgePendiente: { backgroundColor: '#FFE082', color: '#B26A00' },
 }); 

@@ -31,7 +31,7 @@ export async function removeFromFavorites(recipeId: string, token: string, conte
   return apiDelete(`/recipes/favorites/${recipeId}`, true, context);
 }
 
-export async function getFavorites(token: string, context?: { userData: any; modal: any }): Promise<Receta[]> {
+export async function getFavorites(token: string, context?: { userData?: any; modal?: any }): Promise<Receta[]> {
   return apiGet('/recipes/favorites', true, context);
 }
 
@@ -65,7 +65,7 @@ export async function scaleRecipeByPortions(
   }, true, context);
 }
 
-export async function getFilteredRecipes({ nombre, tipo, contieneIngrediente, sinIngrediente }: { nombre?: string; tipo?: string; contieneIngrediente?: string; sinIngrediente?: string }, context?: { userData: any; modal: any }): Promise<Receta[]> {
+export async function getFilteredRecipes({ nombre, tipo, contieneIngrediente, sinIngrediente }: { nombre?: string; tipo?: string; contieneIngrediente?: string; sinIngrediente?: string }, context?: { userData?: any; modal?: any }): Promise<Receta[]> {
   const params = new URLSearchParams();
   if (nombre) params.append('nombre', nombre);
   if (tipo) params.append('tipo', tipo);
@@ -89,14 +89,21 @@ export async function createRecipe(recipeData: any, token: string, context?: { u
   return apiPost('/recipes', recipeData, true, context);
 }
 
-export async function getAllIngredientes(token: string, context?: { userData: any; modal: any }) {
+export async function getAllIngredientes(token: string, context?: { userData?: any; modal?: any }) {
   return apiGet('/ingredients', true, context);
 }
 
-export async function getAllUnidades(token: string, context?: { userData: any; modal: any }) {
+export async function getAllUnidades(token: string, context?: { userData?: any; modal?: any }) {
   return apiGet('/units', true, context);
 }
 
-export async function getAllRecipeTypes(token: string, context?: { userData: any; modal: any }) {
+export async function getAllRecipeTypes(token: string, context?: { userData?: any; modal?: any }) {
   return apiGet('/recipeTypes', true, context);
+}
+
+export async function getMyRecipes(token: string, context?: { userData?: any; modal?: any }) {
+  if (!context) context = { userData: { token } };
+  if (!context.userData) context.userData = { token };
+  else context.userData.token = token;
+  return apiGet('/recipes/myRecipes', true, context);
 } 

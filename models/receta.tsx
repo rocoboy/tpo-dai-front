@@ -6,6 +6,7 @@ export interface Receta {
   votos: number;
   porciones: number;
   imagen: string;
+  estado?: string; // Estado de la receta: 'aprobada' | 'pendiente'
 } 
 
 export interface Usuario {

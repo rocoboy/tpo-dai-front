@@ -56,7 +56,6 @@ export default function HomeScreen({ navigation }: { navigation: any }) {
   const { mutate: fetchRecetas, isPending: isLoadingRecetas } = useMutation({
     mutationFn: () => getTrendingsRecipes({ userData, modal }),
     onSuccess: (data) => {
-      console.log("LLAMADA REALIZADA", data);
       setRecetas(data)
     },
     onError: () => setRecetas([]),
