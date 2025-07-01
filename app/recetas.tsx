@@ -2,7 +2,7 @@ import Header from '@/components/ui/Header';
 import { useAppContext } from '@/context/Context';
 import { useSavedRecipes } from '@/hooks/useSavedRecipes';
 import { IngredienteBase, Receta, TipoReceta } from '@/models/receta';
-import { getAllIngredientes, getAllRecipeTypes, getFavorites, getFilteredRecipes, getMyRecipes } from '@/services/receta';
+import { deleteRecipe, getAllIngredientes, getAllRecipeTypes, getFavorites, getFilteredRecipes, getMyRecipes } from '@/services/receta';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import React from 'react';
 import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -32,11 +32,6 @@ const DROPDOWN_OPTIONS = [
 ];
 
 const BADGE_STYLES = {
-  aprobada: { backgroundColor: '#C8F7E2', color: '#1B8C6E' },
-  pendiente: { backgroundColor: '#FFE082', color: '#B26A00' },
-};
-
-const BADGE_ESTADO = {
   aprobada: { backgroundColor: '#C8F7E2', color: '#1B8C6E' },
   pendiente: { backgroundColor: '#FFE082', color: '#B26A00' },
 };
@@ -145,7 +140,7 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
         setRecetas([]);
       }
     } catch (e: any) {
-      setRecetas([]);
+      setRecetas([]);       
       if (e?.message) {
         modal.setType('dialog');
         modal.setDialogData({
@@ -166,17 +161,17 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
   const sortRecetas = (recetas: Receta[]) => {
     switch (orderBy) {
       case 'nombre':
-        return [...recetas].sort((a, b) => (a.nombre || '').localeCompare(b.nombre || ''));
+        return [...recetas].sort((a, b) => (a?.nombre || '').localeCompare(b?.nombre || ''));
       case 'usuarioAsc':
-        return [...recetas].sort((a, b) => (a.autor || '').localeCompare(b.autor || ''));
+        return [...recetas].sort((a, b) => (a?.autor || '').localeCompare(b?.autor || ''));
       case 'usuarioDesc':
-        return [...recetas].sort((a, b) => (b.autor || '').localeCompare(a.autor || ''));
+        return [...recetas].sort((a, b) => (b?.autor || '').localeCompare(a?.autor || ''));
       case 'fecha':
         // Más recientes primero (IDs más altos)
-        return [...recetas].sort((a, b) => b.id - a.id);
+        return [...recetas].sort((a, b) => (b?.id || 0) - (a?.id || 0));
       case 'fechaAsc':
         // Más antiguas primero (IDs más bajos)
-        return [...recetas].sort((a, b) => a.id - b.id);
+        return [...recetas].sort((a, b) => (a?.id || 0) - (b?.id || 0));
       default:
         return recetas;
     }
@@ -338,50 +333,84 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
     const isSavedRecipe = dropdownValue === 'guardadas';
     const isMyRecipe = dropdownValue === 'mis';
     const isPendiente = isMyRecipe && item.estado === 'pendiente';
-    
+
+    // Handler para eliminar receta propia
+    const handleDeleteMyRecipe = async () => {
+      modal.setType('dialog');
+      modal.setDialogData({
+        title: 'Eliminar Receta',
+        subTitle: `¿Seguro que deseas eliminar "${item.nombre}"? Esta acción no se puede deshacer.`,
+        icon: 'exclamation-triangle',
+        showButton: true,
+        buttonText: 'Eliminar',
+        onButtonPress: async () => {
+          modal.setOpenModal(false);
+          try {
+            await deleteRecipe(String(item.id), userData.token);
+            fetchRecetas();
+          } catch (e) {
+            modal.setType('dialog');
+            modal.setDialogData({
+              title: 'Error',
+              subTitle: 'No se pudo eliminar la receta.',
+              icon: 'exclamation-triangle',
+              onButtonPress: () => modal.setOpenModal(false),
+            });
+            modal.setOpenModal(true);
+          }
+        },
+        showCancelButton: true,
+        cancelButtonText: 'Cancelar',
+        onCancelPress: () => modal.setOpenModal(false),
+      });
+      modal.setOpenModal(true);
+    };
+
     return (
-      <TouchableOpacity
-        style={styles.recetaCard}
-        onPress={() => {
-          if (isPendiente) return; // No permitir acceder al detalle si está pendiente
-          const recipeId = isSavedRecipe ? getOriginalRecipeId(item.id.toString()) : item.id;
-          navigation.navigate('recipeDetail', { recetaId: recipeId });
-        }}
-        activeOpacity={isPendiente ? 1 : 0.7}
-      >
-        <Image source={item.imagen ? { uri: item.imagen } : require('@/assets/images/bigLogo.png')} style={styles.recetaImg} />
-        <View style={{ flex: 1 }}>
-          <Text style={styles.recetaNombre}>{item.nombre}</Text>
-          <Text style={styles.recetaAutor}>👤 {item.autor}</Text>
-          <Text style={styles.recetaInfo}>
-            {item.porciones} Porciones  
-            <FontAwesome name="star" size={13} color="#FFD700" /> 
-            {item.promedioCalificacion?.toFixed(1) ?? '-'}
+      <View style={[styles.recetaCard, { position: 'relative' }]}> {/* Usar View para overlay del badge */}
+        {/* Badge de estado arriba a la derecha para todas las recetas propias */}
+        {isMyRecipe && item.estado && (
+          <Text style={[
+            styles.badgeEstado,
+            item.estado === 'aprobada' ? styles.badgeAprobada : styles.badgePendiente,
+            { position: 'absolute', top: 8, right: 8, zIndex: 2 },
+          ]}>
+            {item.estado.toUpperCase()}
           </Text>
-        </View>
-        <View style={styles.recetaActions}>
-          {/* Badge arriba a la derecha si es pendiente */}
-          {isPendiente && (
-            <Text style={[styles.badgeEstado, styles.badgePendiente, { position: 'absolute', top: 0, right: 0, zIndex: 2 }]}>
-              PENDIENTE
+        )}
+        <TouchableOpacity
+          style={{ flexDirection: 'row', flex: 1 }}
+          onPress={() => {
+            if (isPendiente) return; // No permitir acceder al detalle si está pendiente
+            if (isMyRecipe) navigation.navigate('recipeDetail', { recetaId: item.id });
+            else {
+              const recipeId = isSavedRecipe ? getOriginalRecipeId(item.id.toString()) : item.id;
+              navigation.navigate('recipeDetail', { recetaId: recipeId });
+            }
+          }}
+          activeOpacity={isPendiente ? 1 : 0.7}
+        >
+          <Image source={item.imagen ? { uri: item.imagen } : require('@/assets/images/bigLogo.png')} style={styles.recetaImg} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.recetaNombre}>{item.nombre}</Text>
+            <Text style={styles.recetaAutor}>👤 {item.autor}</Text>
+            <Text style={styles.recetaInfo}>
+              {item.porciones} Porciones  
+              <FontAwesome name="star" size={13} color="#FFD700" /> 
+              {item.promedioCalificacion?.toFixed(1) ?? '-'}
             </Text>
-          )}
-          {isSavedRecipe ? (
-            <TouchableOpacity 
-              style={styles.removeSavedButton}
-              onPress={(e) => {
-                e.stopPropagation();
-                handleRemoveSavedRecipe(item.id.toString(), item.nombre);
-              }}
-            >
-              <FontAwesome name="trash" size={20} color="#ff4757" />
-            </TouchableOpacity>
-          ) : (
-            // Solo mostrar chevron si no es pendiente
-            !isPendiente && <FontAwesome name="chevron-right" size={18} color="#888" />
-          )}
-        </View>
-      </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+        {/* Tachito para eliminar receta propia, abajo a la derecha */}
+        {isMyRecipe && (
+          <TouchableOpacity
+            style={styles.deleteMyRecipeButton}
+            onPress={handleDeleteMyRecipe}
+          >
+            <FontAwesome name="trash" size={20} color="#ff4757" />
+          </TouchableOpacity>
+        )}
+      </View>
     );
   }
 
@@ -453,7 +482,7 @@ export default function RecetasScreen({navigation} : {navigation: any}) {
           ) : (
             <FlatList
               data={recetas}
-              keyExtractor={(item, idx) => (item.id !== undefined && item.id !== null ? item.id.toString() : `receta-${idx}`)}
+              keyExtractor={(item, idx) => (item?.id !== undefined && item?.id !== null ? String(item.id) : `receta-${idx}`)}
               renderItem={({ item }) => renderReceta({ item }, navigation)}
               contentContainerStyle={{ paddingBottom: 80 }}
               ListEmptyComponent={
@@ -674,7 +703,24 @@ const styles = StyleSheet.create({
   },
   filterDropdownOptionText: { fontSize: 14, color: '#222' },
   filterDropdownOptionTextActive: { fontWeight: 'bold', color: '#00bfa5' },
-  badgeEstado: { alignSelf: 'flex-start', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, fontWeight: 'bold', marginTop: 4, marginBottom: 0, fontSize: 13 },
+  badge: { alignSelf: 'flex-start', backgroundColor: '#C8F7E2', color: '#1B8C6E', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 2, fontWeight: 'bold', marginBottom: 6, fontSize: 13 },
   badgeAprobada: { backgroundColor: '#C8F7E2', color: '#1B8C6E' },
   badgePendiente: { backgroundColor: '#FFE082', color: '#B26A00' },
+  deleteMyRecipeButton: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: '#fff5f5',
+    zIndex: 3,
+  },
+  badgeEstado: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
 }); 

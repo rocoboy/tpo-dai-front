@@ -106,4 +106,13 @@ export async function getMyRecipes(token: string, context?: { userData?: any; mo
   if (!context.userData) context.userData = { token };
   else context.userData.token = token;
   return apiGet('/recipes/myRecipes', true, context);
+}
+
+export async function deleteRecipe(id: string, token: string, context?: { userData?: any; modal?: any }) {
+
+  if (!context) context = { userData: { token } };
+  if (!context.userData) context.userData = { token };
+  else context.userData.token = token;
+
+  return apiDelete(`/recipes/${id}`, true, context);
 } 

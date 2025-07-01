@@ -252,8 +252,8 @@ const CreateRecipeScreen = () => {
             placeHolder="Testeo de descripcion para cargar Receta"
           />
 
-          /* TIPO DE RECETA */
-          <ThemedText>Tipo de Receta*</ThemedText>
+          {/* TIPO DE RECETA */}
+          <ThemedText style={{ marginTop: 12, marginBottom: 4, color: '#888', fontSize: 13 }}>Tipo de Receta*</ThemedText>
           <View style={{ marginBottom: 12 }}>
             <TouchableOpacity
               style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, backgroundColor: '#f9f9f9' }}
@@ -276,15 +276,15 @@ const CreateRecipeScreen = () => {
             )}
           </View>
 
-          /* PORCIONES */
-          <ThemedText>Porciones*</ThemedText>
+          {/* PORCIONES */}
+          <ThemedText style={{ marginTop: 12, marginBottom: 4, color: '#888', fontSize: 13 }}>Porciones*</ThemedText>
           <InputText
             value={String(recipeDraft.porciones)}
             onChangeText={(v: any) => setRecipeDraft(d => ({ ...d, porciones: Number(v), cantidadPersonas: Number(v) }))}
             type="numeric"
           />
 
-          /* INGREDIENTES */
+          {/* INGREDIENTES */}
           <View style={styles.sectionHeader}>
             <ThemedText type="subtitle">Ingredientes*</ThemedText>
             <TouchableOpacity style={styles.addButton} onPress={handleAddIngredient}>
