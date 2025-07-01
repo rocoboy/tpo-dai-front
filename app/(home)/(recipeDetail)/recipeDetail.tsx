@@ -8,8 +8,13 @@ import FontAwesome from '@expo/vector-icons/build/FontAwesome';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRoute } from '@react-navigation/native';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { ResizeMode, Video } from 'expo-av';
 import React from 'react';
 import { ActivityIndicator, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { WebView } from 'react-native-webview';
+
+// Definir un aspectRatio 16:9 para los videos y webviews
+const VIDEO_ASPECT_RATIO = 16 / 9;
 
 export default function RecipeDetailScreen({ navigation }: { navigation: any }) {
   const route = useRoute();
@@ -504,14 +509,58 @@ export default function RecipeDetailScreen({ navigation }: { navigation: any }) 
           </View>
         ))}
         <Text style={styles.sectionTitle}>Instrucciones</Text>
-        <Image
-          source={require('@/assets/images/bigLogo.png')}
-          style={styles.instruccionesImg}
-        />
         {receta.pasos.length > 0 && receta.pasos.sort((a, b) => a.nroPaso - b.nroPaso).map((inst: Paso, idx: any) => (
-          <View key={idx} style={styles.instruccionRow}>
+          <View key={idx} style={[styles.instruccionRow, { marginBottom: 18 }]}>
             <Text style={styles.instruccionPaso}>Paso {inst.nroPaso}:</Text>
             <Text style={styles.instruccionTexto}>{inst.texto}</Text>
+            {Array.isArray(inst.multimedia) && inst.multimedia.length > 0 && (
+              <View style={{ marginTop: 8, gap: 10 }}>
+                {inst.multimedia.map((media, mIdx) => {
+                  const ext = (media.extension || '').toLowerCase();
+                  const url = media.urlContenido || media.url;
+                  if (typeof url !== 'string') return null;
+                  // YouTube
+                  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+                    let videoId = '';
+                    const ytMatch = url.match(/(?:youtube\.com.*[?&]v=|youtu\.be\/)([\w-]{11})/);
+                    if (ytMatch && ytMatch[1]) videoId = ytMatch[1];
+                    const embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}` : url;
+                    return (
+                      <View key={mIdx} style={{ backgroundColor: '#fff', borderRadius: 10, padding: 0, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 2, elevation: 1, alignItems: 'center', overflow: 'hidden', width: '100%' }}>
+                        <WebView
+                          source={{ uri: embedUrl }}
+                          style={{ width: '100%', aspectRatio: VIDEO_ASPECT_RATIO, borderRadius: 8 }}
+                          javaScriptEnabled
+                          domStorageEnabled
+                          allowsFullscreenVideo
+                        />
+                      </View>
+                    );
+                  } else if (["jpg","jpeg","png","webp","gif"].includes(ext)) {
+                    return (
+                      <View key={mIdx} style={{ backgroundColor: '#fff', borderRadius: 10, padding: 6, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 2, elevation: 1, alignItems: 'center', width: '100%' }}>
+                        <Image source={{ uri: url }} style={{ width: '100%', aspectRatio: VIDEO_ASPECT_RATIO, borderRadius: 8, resizeMode: 'cover' }} />
+                      </View>
+                    );
+                  } else if (["mp4","mov","avi","webm","mkv"].includes(ext)) {
+                    return (
+                      <View key={mIdx} style={{ backgroundColor: '#fff', borderRadius: 10, padding: 0, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 2, elevation: 1, alignItems: 'center', width: '100%' }}>
+                        <Video
+                          source={{ uri: url }}
+                          style={{ width: '100%', aspectRatio: VIDEO_ASPECT_RATIO, borderRadius: 8 }}
+                          useNativeControls
+                          resizeMode={ResizeMode.CONTAIN}
+                          shouldPlay={false}
+                          isLooping={false}
+                        />
+                      </View>
+                    );
+                  } else {
+                    return null;
+                  }
+                })}
+              </View>
+            )}
           </View>
         ))}
         <View style={{ marginTop: 24 }}>
@@ -716,12 +765,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     marginLeft: 2,
-  },
-  instruccionesImg: {
-    width: '100%',
-    height: 120,
-    borderRadius: 10,
-    marginVertical: 10,
   },
   instruccionRow: {
     marginBottom: 8,
