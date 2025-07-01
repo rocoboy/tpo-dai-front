@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, Pressable, Dimensions } from 'react-native';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useMutation } from '@tanstack/react-query';
 import BottomBar from '@/components/BottomBar';
 import { useAppContext } from '@/context/Context';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { registrarAsistencia } from '@/services/curso';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { useMutation } from '@tanstack/react-query';
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import React, { useRef, useState } from 'react';
+import { Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 
 interface QRScannerRouteParams {
   inscripcionId: string;
@@ -92,9 +92,11 @@ export default function QRScannerScreen() {
       <View style={styles.container}>
         <View style={styles.header}>
           <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Text style={styles.backText}>{'<'} </Text>
+            <FontAwesome name="chevron-left" size={36} color="#00bfa5" />
           </Pressable>
-          <Text style={styles.title}>Escanear QR</Text>
+          <View style={styles.headerTitleWrapper}>
+            <Text style={styles.title}>Escanear QR</Text>
+          </View>
         </View>
         <View style={styles.body}>
           <Text style={styles.message}>Solicitando permisos de cámara...</Text>
@@ -109,9 +111,11 @@ export default function QRScannerScreen() {
       <View style={styles.container}>
         <View style={styles.header}>
           <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Text style={styles.backText}>{'<'} </Text>
+            <FontAwesome name="chevron-left" size={36} color="#00bfa5" />
           </Pressable>
-          <Text style={styles.title}>Escanear QR</Text>
+          <View style={styles.headerTitleWrapper}>
+            <Text style={styles.title}>Escanear QR</Text>
+          </View>
         </View>
         <View style={styles.body}>
           <Text style={styles.message}>Sin acceso a la cámara</Text>
@@ -131,9 +135,11 @@ export default function QRScannerScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Pressable style={styles.backBtn} onPress={() => navigation.goBack()}>
-          <Text style={styles.backText}>{'<'} </Text>
+          <FontAwesome name="chevron-left" size={36} color="#00bfa5" />
         </Pressable>
-        <Text style={styles.title}>Escanear QR</Text>
+        <View style={styles.headerTitleWrapper}>
+          <Text style={styles.title}>Escanear QR</Text>
+        </View>
       </View>
       
       <View style={styles.cameraContainer}>
@@ -210,9 +216,11 @@ const styles = StyleSheet.create({
     marginRight: 12,
     padding: 8,
   },
-  backText: {
-    fontSize: 22,
-    color: '#00bfa5',
+  headerTitleWrapper: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 36, // para compensar el espacio del botón de volver
   },
   title: {
     fontSize: 22,
