@@ -12,6 +12,7 @@ import AddStepScreen from './addStep';
 import CreateRecipeScreen from './createRecipe';
 import PerfilScreen from './perfil';
 import QRScannerScreen from './qrScanner';
+import WelcomeScreen from './welcome';
 
 import React from 'react';
 import { StyleSheet } from 'react-native';
@@ -40,6 +41,7 @@ export default function MainNavigator() {
         </>
       ) : (
         <>
+          <Stack.Screen name="welcome" component={WelcomeScreen} />
           <Stack.Screen name="login" component={LoginScreen} />
           <Stack.Screen name="becomeStudent" component={BecomeStudentScreen} />
           <Stack.Screen name="register" component={RegisterScreen} />
